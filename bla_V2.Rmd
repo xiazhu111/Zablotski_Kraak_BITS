@@ -1,0 +1,1640 @@
+---
+title: "Benthic marine macrolitter in the baltic sea collected during five years of the international fish-trawl survey"
+author:
+- Yury Zablotski^[Thuenen Institute of Baltic Sea Fisheries]
+- Sarah Kraak^[Thuenen Institute of Baltic Sea Fisheries]
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+geometry: margin=1in
+fontfamily: mathpazo
+fontsize: 11pt
+abstract: "Here will be the abstract"
+output:
+  pdf_document:
+    latex_engine: pdflatex
+    keep_tex: true
+    fig_caption: yes
+    fig_height: 4
+    fig_width: 6
+    number_sections: yes
+    toc: yes
+    toc_depth: 6
+    citation_package: "natbib"
+csl: american-political-science-association.csl
+biblio-style: apalike
+link-citations: yes
+
+---
+
+```{r setup, include=FALSE}
+
+library(knitr)
+library(knitcitations)
+library(knitLatex)
+library(cowplot)
+library(Rmisc)
+library(jtools)  # for interact_plot
+library(ggpubr)
+library(tidyverse)
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE
+)
+
+```
+
+
+```{r data preprocessing}
+
+# load all the raw datras data for BLA - baltic litter analysis
+bla <- read.csv("C:/Users/alice/OneDrive - University of Toronto/Alice/Temp/BITS 2012-2017 Zablotski and Kraak/BITS.csv")
+bla
+lt<- bla %>% 
+  select(Quarter,Year, Ship, Gear, Country, StNo, HaulNo, ShootLat, ShootLong, HaulLat, HaulLong, BottomDepth, Distance, LTREF, PARAM, LTSZC, UnitWgt, LT_Weight, LT_Items, HaulDur, HaulVal, DataType) %>% 
+  filter(Year    %in% c(2012:2017), 
+         HaulVal %in% c("A","N","V"), 
+         LT_Items < 101) %>% # remove one nasty outlier
+  mutate(LT_Weight = ifelse(LT_Weight== -9, 0, LT_Weight),
+         LT_Weight = ifelse(UnitWgt  == "g/haul", LT_Weight/1000, LT_Weight), #yup he divided weight in [g/haul] by 1000 so units are kg
+         LT_Items  = ifelse(LT_Items == -9, 0, LT_Items),
+         # I needed to estimate them (4 lines below), because the PARAM were filled, but both, weight and items were 0, so, I took the mean of all (199) of 'A14',  all (102) of 'F3', all (25) of 'A10' and all (267) of 'A3' from the original data set "lt"
+         LT_Weight = ifelse(Year == 2016 & Country == 'DEN'& LT_Items==0 & LT_Weight == 0 & PARAM == 'A14', 0.34, LT_Weight),
+         LT_Weight = ifelse(Year == 2016 & Country == 'DEN'& LT_Items==0 & LT_Weight == 0 & PARAM == 'F3',  0.71, LT_Weight),
+         LT_Weight = ifelse(Year == 2017 & Country == 'POL'& LT_Items==0 & LT_Weight == 0 & PARAM == 'A10', 0.08, LT_Weight),
+         LT_Weight = ifelse(Year == 2017 & Country == 'POL'& LT_Items==0 & LT_Weight == 0 & PARAM == 'A2',  0.04, LT_Weight),
+         # if the weight and the category is recorded, then it would be at least 1 item: I talked to the Danish data submitter, who confirmed it to be 1, saw that Polish data are always 1, so I refilled them too, then got 21 observations from the Latvian submitter and corrected them.
+         # update one LAT E5 record which was 2 with 0.0208 kg.
+         LT_Items  = ifelse(Country == "LAT" & Year == 2016 & LT_Items == 0 & LT_Weight== 0.0208, 2, LT_Items),
+         # also update the Polish metal tank in 2017, which they did not weigh, but based on size 14, this tank should weigh 19 kilograms
+         LT_Weight = ifelse(Country == "POL" & Year == 2017 & PARAM == "B4" & LTSZC == 14,  19, LT_Weight),
+         # The rest of LAT, POL and DEN were 1 (ones)
+         LT_Items  = ifelse(PARAM != "LT-TOT" & LT_Items==0 & LT_Weight>0, 1, LT_Items),
+         # transfer weights and numbers in zero hauls to 0, if they are not (there are just 2 records with 3 items), because without the subcategory known, we will overestimate "Other" or "Rest", or whereever we'll put it
+         LT_Items  = ifelse(PARAM == "LT-TOT", 0, LT_Items),
+         LT_Weight = ifelse(PARAM == "LT-TOT", 0, LT_Weight),
+         LT_Weight = ifelse(LT_Weight > 2000, LT_Weight/1000, LT_Weight)) %>% 
+  # remove useless variables (columns)
+  select(-UnitWgt, -HaulVal, -DataType)
+
+rm(bla)
+```
+
+
+```{r new columns}
+
+# Create new column, which describes Litter Types:
+lt$PARAM_DESCR <- 
+ifelse(lt$PARAM == 'A', 'Uncategorised Plastic', 
+ifelse(lt$PARAM == 'A1', 'Plastic bottle', 
+ifelse(lt$PARAM == 'A2', 'Plastic sheet', 
+ifelse(lt$PARAM == 'A3', 'Plastic bag',
+ifelse(lt$PARAM == 'A4', 'Plastic caps/lids',
+ifelse(lt$PARAM == 'A5', 'Plastic fishing line (monofilament)',
+ifelse(lt$PARAM == 'A6', 'Plastic fishing line (entangled)',
+ifelse(lt$PARAM == 'A7', 'Plastic synthetic rope',
+ifelse(lt$PARAM == 'A8', 'Plastic fishing net',
+ifelse(lt$PARAM == 'A9', 'Plastic cable ties',
+ifelse(lt$PARAM == 'A10', 'Plastic strapping band',
+ifelse(lt$PARAM == 'A11', 'Plastic crates and containers',
+ifelse(lt$PARAM == 'A12', 'Plastic diapers',
+ifelse(lt$PARAM == 'A13', 'Plastic sanitary towel/tampon',
+ifelse(lt$PARAM == 'A14', 'Other plastics',
+ifelse(lt$PARAM == 'B', 'Uncategorised metals',
+ifelse(lt$PARAM == 'B1', 'Metal cans (food)',
+ifelse(lt$PARAM == 'B2', 'Metal cans (beverage)',
+ifelse(lt$PARAM == 'B3', 'Fishing related metal',
+ifelse(lt$PARAM == 'B4', 'Metal drums',
+ifelse(lt$PARAM == 'B5', 'Metal appliances',
+ifelse(lt$PARAM == 'B6', 'Metal car parts',
+ifelse(lt$PARAM == 'B7', 'Metal cables',
+ifelse(lt$PARAM == 'B8', 'Other Metal',
+ifelse(lt$PARAM == 'C', 'Uncategorised rubber',
+ifelse(lt$PARAM == 'C1', 'Rubber boots',
+ifelse(lt$PARAM == 'C2', 'Rubber balloons',
+ifelse(lt$PARAM == 'C3', 'Rubber bobbins (fishing)',
+ifelse(lt$PARAM == 'C4', 'Rubber tyre',
+ifelse(lt$PARAM == 'C5', 'Rubber glove',
+ifelse(lt$PARAM == 'C6', 'Other rubber',
+ifelse(lt$PARAM == 'D', 'Uncategorised Glass/Ceramics',
+ifelse(lt$PARAM == 'D1', 'Glass jar',
+ifelse(lt$PARAM == 'D2', 'Glass bottle',
+ifelse(lt$PARAM == 'D3', 'Glass/ceramic piece',
+ifelse(lt$PARAM == 'D4', 'Other glass or ceramic',
+ifelse(lt$PARAM == 'E', 'Uncategorised Natural products',
+ifelse(lt$PARAM == 'E1', 'Nat.pr. wood (processed)',
+ifelse(lt$PARAM == 'E2', 'Nat.pr. rope',
+ifelse(lt$PARAM == 'E3', 'Nat.pr. paper/cardboard',
+ifelse(lt$PARAM == 'E4', 'Nat.pr. pallets',
+ifelse(lt$PARAM == 'E5', 'Other natural products',
+ifelse(lt$PARAM == 'F', 'Miscellaneous',
+ifelse(lt$PARAM == 'F1', 'Clothing/rags',
+ifelse(lt$PARAM == 'F2', 'Shoes',
+ifelse(lt$PARAM == 'F3', 'Other',
+ifelse(lt$PARAM %in% c('LT-TOT', "LT-TOT "), 'Zero haul',
+0)))))))))))))))))))))))))))))))))))))))))))))))
+
+# Create new column, which describes Litter Categories: #Yury already made a plastic category for me!!
+lt$Litter_category <- 
+  ifelse(lt$PARAM %in% c('A','A1','A2','A3','A4','A5','A6','A7','A8','A9','A10','A11','A12','A13','A14'),  'Plastic', 
+  ifelse(lt$PARAM %in% c('B','B1','B2','B3','B4','B5','B6','B7','B8'), 'Metal',
+  ifelse(lt$PARAM %in% c('C','C1','C2','C3','C4','C5','C6'), 'Rubber',
+  ifelse(lt$PARAM %in% c('D','D1','D2','D3','D4'),'Glas',
+  ifelse(lt$PARAM %in% c('E','E1','E2','E3','E4','E5'),'Nat.Prod',
+  ifelse(lt$PARAM %in% c('F','F1','F2','F3'),'Rest',
+  ifelse(lt$PARAM %in% c('LT-TOT', "LT-TOT "), 'Zero haul',
+0)))))))
+
+lt2 <- read.csv("C:/Users/alice/OneDrive - University of Toronto/Alice/Temp/BITS 2012-2017 Zablotski and Kraak/lt2.csv")
+lt2
+lt2$Plastic_Weight <- 
+  ifelse(lt2$Litter_category == 'Plastic', lt2$LT_Weight,0) #populate a new column with weight of plastic specifically
+lt2
+#then, use dplyr: https://stackoverflow.com/questions/32493398/sum-column-in-data-frame-based-on-another-column-in-r
+library(dplyr) #IT WORKED!!! plastic kg/haul weights saved for each unique lat, long combination
+lt2_sum <- lt2 %>% group_by(HaulLat,HaulLong,Year,Distance,) %>%
+    summarize(Plastic_Weight = sum(Plastic_Weight)) #see if this works - wonder if need to specify something for every column I want to be kept in the new dataframe
+write.csv(lt2_sum, file = "C:/Users/alice/OneDrive - University of Toronto/Alice/Temp/lt2_sum.csv")
+
+
+# Create new column, which describes Litter sourse without Synthetic rope
+lt$Litter_sourse <-
+  ifelse(lt$PARAM %in% c('A','A1','A2','A3','A4','A7','A9','A10','A11','A12','A13','A14','B','B1','B2','B4','B5','B6','B7','B8','C','C1','C2','C4','C5','C6','D','D1','D2','D3','D4','E','E1','E2','E3','E4','E5','F','F1','F2','F3'), 'Non-fishery litter',
+  ifelse(lt$PARAM %in% c('A5','A6','A8','B3','C3'), 'Fishery litter',
+  ifelse(lt$PARAM %in% c('LT-TOT', "LT-TOT "), 'Zero haul',       
+  0)))
+
+# Create new column, which describes Litter sourse with Synthetic rope
+lt$Litter_sourse_sr <-
+  ifelse(lt$PARAM %in% c('A','A1','A2','A3','A4','A9','A10','A11','A12','A13','A14','B','B1','B2','B4','B5','B6','B7','B8','C','C1','C2','C4','C5','C6','D','D1','D2','D3','D4','E','E1','E2','E3','E4','E5','F','F1','F2','F3'), 'Non-fishery litter',
+  ifelse(lt$PARAM %in% c('A5','A6','A7','A8','B3','C3'), 'Fishery litter',
+  ifelse(lt$PARAM %in% c('LT-TOT', "LT-TOT "), 'Zero haul',       
+  0)))
+
+write.csv(lt, file = "C:/Users/alice/OneDrive - University of Toronto/Alice/Temp/lt.csv") #Alice: did this already
+
+```
+
+# National contribution
+
+```{r natcontr}
+
+# group data to get hauls instead of datarows
+natcontr <- lt %>% 
+  dplyr::select(Year, Quarter, Country, Ship, HaulNo)  %>%
+  group_by(Year, Quarter, Country, Ship)  %>% # Denish guys have two different ships
+  summarise(nh = length(unique(HaulNo)) ) %>% # "unique" is a key!
+  group_by(Year, Quarter, Country)        %>%
+  summarise(nh2 = sum(nh) )
+
+# add "mq - missing quarters" to "natcontr" in order to be able to plot missing quarters
+mq <- data.frame(matrix(c(2012,1,"GFR",0,
+                          2015,1,"EST",0,
+                          2015,1,"LAT",0,
+                          2015,1,"LTU",0,
+                          2015,1,"POL",0,
+                          2016,1,"EST",0,
+                          2017,1,"EST",0),
+                          ncol=4,byrow=TRUE) )
+
+# name the columns exactly like in "natcontr", otherwise "rbind" wouldnt work
+colnames(mq) <- c("Year","Quarter","Country","nh2")
+
+# reformat columns exactly like in "natcontr", otherwise "rbind" wouldnt work.
+# they are all "factors" in the beginning. "factors" can't be converted to "integer" directly, thus, first convert to "character", then to "integer"
+mq$Year     <- as.integer(as.character(mq$Year))
+mq$Quarter  <- as.integer(as.character(mq$Quarter))
+mq$Country  <- as.character(mq$Country)
+mq$nh2      <- as.integer(as.character(mq$nh2))
+
+# bind two data frames beneath each other
+natcontr <- rbind(data.frame(natcontr), data.frame(mq))
+write.csv(natcontr, file = "C:/Users/alice/OneDrive - University of Toronto/Alice/Temp/natcontr.csv")
+p1 <- ggplot(natcontr, aes(x = Country, y = nh2,  fill = factor(Quarter)) ) +
+  geom_bar(stat="identity", position="dodge",  width=.9, color = "black") +
+  facet_grid(.~Year, scales = "free_x",  space="free_x") +
+  theme_bw() +
+  scale_fill_grey(start = 0.2, end = 0.8)+
+  guides(fill = guide_legend(title = "Quarter")) +
+  labs(x = "", y = "Number of hauls") +
+  theme(plot.title=element_text(hjust = 0.5, size = rel(1.5)), 
+        legend.position = c(0.47,0.8),
+        legend.background = element_rect(fill = NA),
+        legend.direction = "vertical",
+        axis.text.x=element_text(colour="black", size = 8, vjust = -0.005, angle = 90),
+        axis.text.y=element_text(colour="black", size = 8))
+p1 
+
+ggsave("natcontr.jpg", plot = p1, width = 140, height = 70, units = "mm", dpi = 400)
+
+#rm(mq,p1,natcontr)
+```
+
+# Litter occurrence 
+
+```{r occurrence}
+
+# calculate annual and quaterly numbers of litter hauls
+nlh <- subset(lt, !(Litter_category %in% c('Zero haul')) )
+yqnlh <- nlh %>%
+  group_by(Year, Quarter, Country, Ship, HaulNo)  %>% # Danish guys have two different ships
+  summarise( nh = length(unique(HaulNo)) ) %>% # unique is a key!
+  group_by(Year, Quarter, Country) %>%
+  summarise( nh2 = sum(nh) ) %>% 
+  group_by(Year, Quarter) %>%
+  summarise(Haul_number = sum(nh2)) %>%
+  mutate(Litter_occurence = 'Litter found')
+
+# calculate annual and quaterly numbers of zero hauls
+nzh <- subset(lt, Litter_category %in% c('Zero haul') )
+yqnzh <- nzh %>%
+  group_by(Year, Quarter, Country, Ship, HaulNo, LTREF)  %>% # Danish guys have two different ships
+  summarise(nh = length(unique(HaulNo)) ) %>% # unique is a key!
+  group_by(Year, Quarter, Country)        %>%
+  summarise(nh2 = sum(nh) ) %>% 
+  group_by(Year, Quarter) %>%
+  summarise(Haul_number = sum(nh2))  %>%
+  mutate(Litter_occurence = 'Zero hauls')
+
+# combine two tables into one in the "data frame" format, otherwise "mutate" won't work
+lqz <- data.frame( rbind(yqnlh, yqnzh) )
+write.csv(lqz, file = "C:/Users/alice/OneDrive - University of Toronto/Alice/Temp/lqz.csv")
+# calculate annual hauls and percentages
+lqz <- lqz %>% 
+  mutate(Quarter = ifelse(Quarter == 1, "Q1", "Q4")) %>% 
+  mutate(All_hauls = lqz$Haul_number[c(1:12,13:24)] + lqz$Haul_number[c(13:24,1:12)]) %>%
+  mutate(Percentage = round(Haul_number*100 / All_hauls)) 
+
+blup1 <- lqz %>% filter(Litter_occurence == "Zero hauls")
+blup2 <- lqz %>% filter(Litter_occurence == "Litter found")
+lqz <- rbind(blup1, blup2)
+
+
+# print out some useful results
+kable(lqz %>% 
+        dplyr::group_by(Litter_occurence) %>% 
+        summarise(N_of_hauls = sum(Haul_number), mean_percent = mean(Percentage)) )
+
+kable(lqz %>% 
+        dplyr::group_by(Litter_occurence, Year) %>% 
+        summarise(N_of_hauls = sum(Haul_number), mean_percent = mean(Percentage)) )
+
+kable(lqz %>% 
+        dplyr::group_by(Litter_occurence, Quarter) %>% 
+        summarise(N_of_hauls = sum(Haul_number), mean_percent = mean(Percentage)) )
+
+lqz %>% group_by(Quarter) %>% summarise(mean(Haul_number))
+
+wilcox.test(Haul_number~Quarter, data = lqz %>% filter(Litter_occurence == "Litter found"), exact = FALSE)
+
+# plot the results quaterly and yearly
+#label <- reorder(factor(lqzLitter_occurence),Percentage)
+p2 <- ggplot(data = lqz, aes(x = Year, y = Percentage, fill = factor(reorder(Litter_occurence, Percentage)))) +
+  geom_bar(stat = "identity", position = position_stack(), color='black') +
+  geom_text(data = lqz, aes(x = Year, y = ifelse(Litter_occurence == "Zero hauls", 100-Percentage/2, Percentage/2), label = paste0(Percentage,"%")), size = 1.5) +
+  facet_grid(.~Year+Quarter, scales = "free", switch = "x") +
+  guides(fill = guide_legend(title = "          ")) +
+  scale_y_continuous(breaks = c(0, 50, 100)) +
+  scale_fill_grey(start = 1, end = 0.8)+
+  labs(x = "Year & Quarter", y = "Number of hauls (%)") +
+  theme(plot.title=element_text(hjust = 0.5, size = rel(1)),
+        axis.text.x=element_blank(),
+        axis.text.y=element_text(colour="black", size = 5),
+        axis.ticks.x = element_blank(),
+        axis.title = element_text(size = 7),
+        legend.text = element_text(size = 5),
+        axis.line = element_blank(),
+        strip.text.x = element_text(size = 5),
+        text=element_text(),
+        legend.position = "top",
+        legend.key.size = unit(0.4, "cm") )
+p2
+
+ggsave("yq.jpg", plot = p2, width = 90, height = 60, units = "mm", dpi = 400)
+
+#rm(blup1,blup2, lqz, nlh, nzh,p2, yqnlh,yqnzh)
+```
+
+Number of Items and Number of Kilos in the whole sample (all years, all countries):
+
+```{r yearly_stats_boot}
+
+# yearly stats (sum, mean, SD, SE, CI) without bootstrap (just for a comparison, if needed)
+# ys <- lt %>% 
+#   group_by(Year, Quarter, Country, Ship, HaulNo) %>% 
+#   summarise(nh = length(unique(HaulNo)), N_sum = sum(LT_Items), W_sum = sum(LT_Weight) ) %>% 
+#   group_by(Year) %>%
+#   summarise(nh = sum(nh),
+#             sum.N = sum(N_sum, na.rm = TRUE),
+#             sum.W = sum(W_sum, na.rm = TRUE),
+#             mean.N = mean(N_sum, na.rm = TRUE),
+#             mean.W = mean(W_sum, na.rm = TRUE),
+#             sd.N = sd(N_sum, na.rm = TRUE),
+#             sd.W = sd(W_sum, na.rm = TRUE) ) %>%
+#   mutate(se.N = sd.N / sqrt(nh),
+#          se.W = sd.W / sqrt(nh),
+#          lower.ci.N = mean.N - qt(1 - (0.05 / 2), nh - 1) * se.N,
+#          upper.ci.N = mean.N + qt(1 - (0.05 / 2), nh - 1) * se.N,
+#          lower.ci.W = mean.W - qt(1 - (0.05 / 2), nh - 1) * se.W,
+#          upper.ci.W = mean.W + qt(1 - (0.05 / 2), nh - 1) * se.W)
+
+# yearly absolute numbers
+yan <- lt %>% 
+  group_by(Year, Quarter, Country, Ship, HaulNo) %>% 
+  summarise(nh = length(unique(HaulNo)), N_sum = sum(LT_Items), W_sum = sum(LT_Weight) ) %>% 
+  group_by(Year) %>% 
+  summarise(nh = sum(nh), sum.N=sum(N_sum), sum.W=sum(W_sum))
+
+# plot annual numbers
+p3 <- ggplot(yan, aes(x = factor(Year), y = sum.N), group = Year ) +
+  geom_bar(stat="identity", position="dodge", width=.9, color="black", fill="grey") +
+  geom_hline(yintercept = mean(yan$sum.N), linetype="dotted")+
+  theme_classic() +
+  labs(x = "", y = "Number (items)") +
+  theme(plot.title=element_text(hjust = 0.5, size = rel(1.5)), 
+        legend.position = "top",
+        axis.text.x=element_text(colour="black", size = 5),
+        axis.text.y=element_text(colour="black", size = 5),
+        axis.title = element_text(colour = "black", size = 7))
+
+# plot annual weights
+p4 <- ggplot(yan, aes(x = factor(Year), y = sum.W) ) +
+  geom_bar(stat="identity", position="dodge", width=.9, color="black", fill="grey") +
+  geom_hline(yintercept = mean(yan$sum.W), linetype="dotted")+
+  theme_classic() +
+  labs(x = "", y = "Weight (kg)") +
+  theme(plot.title=element_text(hjust = 0.5, size = rel(1.5)), 
+        legend.position = "top",
+        axis.text.x=element_text(colour="black", size = 5),
+        axis.text.y=element_text(colour="black", size = 5),
+        axis.title = element_text(colour = "black", size = 7))
+
+# yearly stats bootstrapped
+ysb <- lt %>% 
+  group_by(Year, Quarter, Country, Ship, HaulNo) %>% 
+  summarise(nh = length(unique(HaulNo)), N_sum = sum(LT_Items), W_sum = sum(LT_Weight) )
+
+p5 <- ggplot(ysb, aes(x = factor(Year), y = N_sum) ) +
+  stat_summary(fun.data = mean_cl_boot, geom = "bar", width=.9, color="black", fill="grey")+
+  stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = .5)+
+  geom_hline(yintercept = mean(ysb$N_sum), linetype="dotted")+
+  #stat_compare_means(label.y = 6, method = "anova", aes(label = paste("ANOVA, p =",..p.format..)))+ # just a check, forget about this line
+  stat_compare_means(label.y.npc =  "bottom", label = "p.signif", method = "t.test", ref.group = 1, hide.ns = T, size=4)+
+  theme_classic() +
+  labs(x = "", y = "Number/haul") +
+  theme(plot.title=element_text(hjust = 0.5, size = rel(1.5)), 
+        legend.position = "top",
+        axis.text.x=element_text(colour="black", size = 5),
+        axis.text.y=element_text(colour="black", size = 5),
+        axis.title = element_text(colour = "black", size = 7))
+
+p6 <- ggplot(ysb, aes(x = factor(Year), y = W_sum) ) +
+  stat_summary(fun.data = mean_cl_boot, geom = "bar", width=.9, color="black", fill="grey")+
+  stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = .5)+
+  geom_hline(yintercept = mean(ysb$W_sum), linetype="dotted")+
+  #stat_compare_means(label.y = 7, method = "anova", aes(label = paste("ANOVA, p =",..p.format..)))+
+  stat_compare_means(label.y.npc =  "bottom", label = "p.signif", method = "t.test", ref.group = 1, hide.ns = T, size=4)+
+  theme_classic() +
+  labs(x = "", y = "Weight (kg) / haul") +
+  theme(plot.title=element_text(hjust = 0.5, size = rel(1.5)), 
+        legend.position = "top",
+        axis.text.x=element_text(colour="black", size = 5),
+        axis.text.y=element_text(colour="black", size = 5),
+        axis.title = element_text(colour = "black", size = 7))
+
+p7 <- ggdraw() +
+  draw_plot(p3, x = 0, y = 0.5, width = 0.5, height = 0.5) +
+  draw_plot(p4, x = 0.5, y = 0.5, width = 0.5, height = 0.5) +
+  draw_plot(p5, x = 0, y = 0, width = .5, height = .5) +
+  draw_plot(p6, x = .5, y = 0, width = .5, height = .5) +
+  draw_plot_label(label = c("A", "B", "C","D"), size = 7,
+                  x = c(0, 0.5, 0, 0.5), y = c(1, 1, 0.5, 0.5)) 
+
+p7
+
+ggsave("anncat.jpg", plot = p7, units = "mm", width = 90, height = 70)
+
+#rm(p3,p4,p5,p6,p7,ys,ysb)
+
+```
+
+
+
+# Litter categories
+
+
+```{r litcat_per_haul}
+
+litcat_no_zh <- lt %>% #this code basically sums LT_weight and LT_Items by litter category. I can do this myself as well
+  filter(Litter_category != "Zero haul") %>% 
+  select(Year, Quarter, Country, Ship, HaulNo,  Litter_category, LT_Items, LT_Weight)  %>%
+  group_by(Year, Quarter, Country, Ship, HaulNo, Litter_category) %>% 
+  summarise(nh = length(unique(HaulNo)), N_sum = sum(LT_Items), W_sum = sum(LT_Weight) ) %>% 
+  ungroup() %>% 
+  select(Year, nh, N_sum, W_sum, Litter_category)
+write.csv(litcat_no_zh, file = "C:/Users/alice/OneDrive - University of Toronto/Alice/Temp/litcat_no_zh.csv")
+# add number of annual hauls to compute the missing zero hauls per litter category
+lnzh <- left_join(litcat_no_zh, yan[1:2], by = "Year")
+
+# zero hauls for all categories based on the annual number of hauls
+zh <- lnzh %>% 
+  group_by(Year, nh.x, Litter_category,  nh.y) %>% 
+  summarise(h=n()) %>% mutate(missing=nh.y-h) %>% 
+  mutate(N_sum = 0, W_sum = 0) %>% 
+  select(Year, nh.x, N_sum, W_sum, Litter_category, missing) %>% 
+  group_by_all() %>% 
+  tidyr::expand(missing = seq(1:missing)) %>% 
+  ungroup() %>% 
+  select(-missing) %>% 
+  rename(nh=nh.x)
+
+# combine two tables in order to get a real numbers per litcat incl. zero hauls - Alice: missing a lot of information like weight
+litcat_per_haul <-  rbind(litcat_no_zh, zh)
+write.csv(litcat_per_haul, file = "C:/Users/alice/OneDrive - University of Toronto/Alice/Temp/litcat_per_haul.csv")
+
+# create y intercept
+m <- litcat_per_haul %>% 
+  group_by(Litter_category) %>% 
+  summarise(n_mean = mean(N_sum),
+            w_mean = mean(W_sum))
+
+p8 <- ggplot(litcat_per_haul, aes(x = as.factor(Year), y = N_sum)) +
+  stat_summary(fun.data = mean_cl_boot, geom = "bar", position="dodge", width=.9, color="black", fill="grey") +
+  stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = 0.3)+
+  facet_wrap(~Litter_category, scales = "free_y")+
+  stat_compare_means(label.y.npc =  "bottom", label = "p.signif", method = "t.test", ref.group = 1, hide.ns = T, size=4)+
+  geom_hline(data = m, aes(yintercept = n_mean), linetype = 2)+
+  labs(x = "", y = "Number/haul") +
+  theme(plot.title=element_text(hjust = 0.5, size = rel(1)), 
+        axis.text.x=element_text(colour="black", size = 6),
+        axis.text.y=element_text(colour="black", size = 8))
+
+p9 <- ggplot(litcat_per_haul, aes(x = as.factor(Year), y = W_sum)) +
+  stat_summary(fun.data = mean_cl_boot, geom = "bar", position="dodge", width=.9, color="black", fill="grey") +
+  stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = 0.3)+
+  facet_wrap(~Litter_category, scales = "free_y")+
+  stat_compare_means(label.y.npc = 0.0004, label = "p.signif", method = "t.test", ref.group = 1, hide.ns = T, size=4)+
+  geom_hline(data = m, aes(yintercept = w_mean), linetype = 2)+
+  labs(x = "", y = "Weight (kg) / haul") +
+  theme(plot.title=element_text(hjust = 0.5, size = rel(1)), 
+        axis.text.x=element_text(colour="black", size = 6),
+        axis.text.y=element_text(colour="black", size = 8))
+
+#rm(litcat_no_zh,lnzh,zh)
+```
+
+
+```{r litcat_per_haul_poland}
+# # all countries-just to validate that the coding is in line with our results
+# blup1 <- lt %>% 
+#   group_by(Litter_category) %>%  
+#   summarise(n = sum(LT_Items)) %>% 
+#   mutate(perc = round( (n *100) / sum(blup1$n), 2) )
+# blup1
+# 
+# # now poland with both quarters
+# blup2 <- lt %>% 
+#   filter(Country == "POL") %>% 
+#   group_by(Litter_category) %>%  
+#   #filter(Quarter = ifelse(Year == ))
+#   summarise(n = sum(LT_Items)) %>% 
+#   mutate(perc = round( (n *100) / sum(blup2$n), 2) )
+# blup2
+# 
+# # now poland with only 4th quarters
+# blup3 <- lt %>% 
+#   filter(Country == "POL" & Quarter == 4) %>% 
+#   group_by(Litter_category) %>%  
+#   summarise(n = sum(LT_Items)) %>% 
+#   mutate(perc = round((n *100) / sum(blup3$n), 2))
+# blup3
+                                                                                                           
+```
+
+
+```{r compare_to_kammann_2017, cache=TRUE}
+
+data <- litcat_per_haul %>% 
+  slice(rep(1:n(),  ifelse(.$N_sum != 0, .$N_sum, 1)) ) %>% 
+  mutate(N_sum = ifelse(N_sum != 0, 1, 0)) %>% 
+  select(-nh, -W_sum) %>% 
+  filter(N_sum>0)
+
+# take 10000 samples of 50 items to be able to compare it to Kammanns results
+set.seed(1234)
+p <- proc.time()
+for(i in 1:10000){
+
+  x <- data %>%
+    sample_n(., 50, replace = T) %>% 
+    group_by(Litter_category) %>% 
+    summarise(N=sum(N_sum)) %>% 
+    mutate( sample = i) %>%
+    mutate(percentage = (N / sum(N)) * 100) %>% 
+    select(-N) #%>% 
+    # spread(Litter_category, freq)
+  
+    if(i==1){
+    output <- as.data.frame(x)
+    }
+    if(i!=1){
+    output <- rbind(output,as.data.frame(x))
+    }
+    
+} ; rm(i,x)
+proc.time()-p
+
+output <- output %>% spread(Litter_category, percentage, fill = 0) %>% select(-1)
+write.csv(output, file = "output_50_10000.csv")
+
+bla <- as.data.frame(t(sapply(output, mean_ci)))
+blup <- apply(bla,2,unlist)
+blup
+barplot(blup[,1])
+
+```
+
+
+
+```{r litcat}
+
+# litter categories
+litcat <- litcat_per_haul %>% 
+  group_by(Litter_category) %>% 
+  summarise(sumItems=sum(N_sum), sumWeight = sum(W_sum))
+
+# plot numbers
+p10 <- ggplot(litcat, aes(x = reorder(Litter_category, -sumItems), y = sumItems)) + 
+  geom_bar(stat = "identity", position = position_dodge(0.9)) +
+  geom_text(aes(label = paste(sumItems,"~",sprintf("%.0f%%",sumItems/sum(sumItems)*100))), 
+            vjust=-0.5, colour="black",size = 2) +
+  theme_classic() + ylim(0,3000) +
+  labs(x = "", y = "Number of items") +
+  ggtitle(" ")+
+  theme(plot.title=element_text(hjust = 0.5, size = rel(1.5)),
+        axis.text.x=element_text(colour="black", size = 8),
+        axis.text.y=element_text(colour="black", size = 8));
+
+# plot weight
+p11 <- ggplot(litcat, aes(x = reorder(Litter_category, -sumWeight), y = sumWeight)) + 
+  geom_bar(stat = "identity", position = position_dodge(0.9)) +
+  geom_text(aes(label = paste(round(sumWeight), "~",sprintf("%.0f%%",sumWeight/sum(sumWeight)*100))), 
+            vjust=-0.5, colour="black",size = 2) +
+  theme_classic() + 
+  ylim(0,1400) +
+  labs(x = "", y = "Weight (kg)") +
+  theme(plot.title=element_text(hjust = 0.5, size = rel(1.5)),
+        axis.text.x=element_text(colour="black", size = 8),
+        axis.text.y=element_text(colour="black", size = 8));
+
+# -------------------------------------------------------------
+# unfortunatly I couldnt simply put picture into pdf, the scales are getting crazy, thus
+# I saved a pdf on my PC and enter the picture below the r-chunk "manually"
+#lc_all2 <-plot_grid(p10, p11, p8.1, p9.1, 
+                    #labels = "AUTO")
+
+#ggsave("lc_all2.png", plot = lc_all2, width = 11, height = 7)
+
+library(grid)
+library(png)
+
+# get the pictures of litter we found and reformat it in order to connect to normal plots
+p12 <- rasterGrob(readPNG("lp2.png", native = T), interpolate=F)
+
+p13 <- plot_grid(p12, p10, p11, ncol = 1, labels = "AUTO", rel_widths   = c(0.9, 0.4, 0.4))
+
+ggsave("litcat.jpg", plot = p13, units = "mm", width = 90, height = 205)
+
+
+#rm(data,p10,p11,p12,p13)
+```
+
+
+
+# National catch
+
+
+```{r national_catch}
+natcatch <- lt %>% 
+  group_by(Year, Country, Ship, HaulNo) %>% 
+  summarise(nh = length(unique(HaulNo)), N_sum = sum(LT_Items), W_sum = sum(LT_Weight) )
+
+# add "my - missing years" to "natcatch" in order for plot to look nicer
+my <- data.frame(matrix(c(2012,"EST",0,0,0,0,0,
+                          2013,"EST",0,0,0,0,0,
+                          2014,"EST",0,0,0,0,0,
+                          2012,"LAT",0,0,0,0,0,
+                          2013,"LAT",0,0,0,0,0,
+                          2014,"LAT",0,0,0,0,0,
+                          2012,"LTU",0,0,0,0,0,
+                          2013,"LTU",0,0,0,0,0,
+                          2014,"LTU",0,0,0,0,0,
+                          2012,"POL",0,0,0,0,0,
+                          2013,"POL",0,0,0,0,0,
+                          2014,"POL",0,0,0,0,0 ), ncol=7, byrow=TRUE) )
+colnames(my) <- c("Year","Country","Ship","HaulNo","nh","N_sum","W_sum")
+
+my <- my %>% mutate_at(vars(4:7), as.character) %>% mutate_at(vars(4:7), as.double)
+
+# combine two tables
+natcatch <- rbind(as.data.frame(natcatch), as.data.frame(my))
+
+#
+nc1 <- ggplot(natcatch %>% filter(Country %in% c("DEN", "GFR", "SWE")), aes(x = factor(Year), y = N_sum)) +
+  stat_summary(fun.data = mean_cl_boot, geom = "bar", fill = "gray", color="black")+
+  stat_summary(fun.data = mean_cl_boot, geom = "errorbar")+
+  stat_compare_means(label.y.npc = "bottom", label = "p.signif", method = "t.test", 
+                     ref.group = 1, hide.ns = T, size=4)+
+  facet_wrap(~Country, scales = "free")+
+  labs(x = "", y = "Number/haul")+
+  theme(axis.text.x=element_text(colour="black", size = 9),
+        axis.text.y=element_text(colour="black", size = 9))
+nc1
+
+nc2 <- ggplot(natcatch %>% filter(Country %in% c("EST","LAT","LTU","POL") & Year %in% c(2015:2017)), aes(x = factor(Year), y = N_sum)) +
+  stat_summary(fun.data = mean_cl_boot, geom = "bar", fill = "gray", color="black")+
+  stat_summary(fun.data = mean_cl_boot, geom = "errorbar")+
+  stat_compare_means(label.y.npc = "bottom", label = "p.signif", method = "t.test", 
+                     ref.group = 1, hide.ns = T, size=4)+
+  facet_wrap(~Country, scales = "free", nrow = 1)+
+  labs(x = "", y = "")+
+  theme(axis.text.x=element_text(colour="black", size = 9),
+        axis.text.y=element_text(colour="black", size = 9))
+nc2
+
+nc3 <- ggplot(natcatch %>% filter(Country %in% c("DEN", "GFR", "SWE")), aes(x = factor(Year), y = W_sum)) +
+  stat_summary(fun.data = mean_cl_boot, geom = "bar", fill = "gray", color="black")+
+  stat_summary(fun.data = mean_cl_boot, geom = "errorbar")+
+  stat_compare_means(label.y.npc = "bottom", label = "p.signif", method = "t.test", 
+                     ref.group = 1, hide.ns = T, size=4)+
+  facet_wrap(~Country, scales = "free")+
+  labs(x = "", y = "Weight (kg) / haul")+
+  theme(axis.text.x=element_text(colour="black", size = 9),
+        axis.text.y=element_text(colour="black", size = 9))
+nc3
+
+nc4 <- ggplot(natcatch %>% filter(Country %in% c("EST","LAT","LTU","POL") & Year %in% c(2015:2017)), aes(x = factor(Year), y = W_sum)) +
+  stat_summary(fun.data = mean_cl_boot, geom = "bar", fill = "gray", color="black")+
+  stat_summary(fun.data = mean_cl_boot, geom = "errorbar")+
+  stat_compare_means(label.y.npc = "bottom", label = "p.signif", method = "t.test", 
+                     ref.group = 1, hide.ns = T, size=4)+
+  facet_wrap(~Country, scales = "free", nrow = 1)+
+  labs(x = "", y = "")+
+  theme(axis.text.x=element_text(colour="black", size = 9),
+        axis.text.y=element_text(colour="black", size = 9))
+nc4
+
+
+nat_catch <- plot_grid(nc1,nc2,nc3,nc4, ncol = 2, rel_widths   = c(0.55, 0.45))
+
+ggsave("natcatch.jpg", plot = nat_catch, width = 13, height = 6)
+
+rm(litcat,my,nat_catch, natcatch, nc1,nc2,nc3,nc4)
+
+```
+
+
+```{r natcat, eval=FALSE, include=FALSE}
+
+# this code will not be executed by purpose. See above: eval=FALSE, include=FALSE
+# calculate national catch
+
+natcatch <- lt %>% 
+  group_by(Year, Quarter, Country, Ship, HaulNo) %>% 
+  summarise(nh = length(unique(HaulNo)), N_sum = sum(LT_Items), W_sum = sum(LT_Weight) ) %>% 
+  group_by(Year, Country) %>%
+  summarise(nh = sum(nh),
+            sum.N = sum(N_sum, na.rm = TRUE),
+            sum.W = sum(W_sum, na.rm = TRUE),
+            mean.N = mean(N_sum, na.rm = TRUE),
+            mean.W = mean(W_sum, na.rm = TRUE),
+            sd.N = sd(N_sum, na.rm = TRUE),
+            sd.W = sd(W_sum, na.rm = TRUE) ) %>%
+  mutate(se.N = sd.N / sqrt(nh),
+         se.W = sd.W / sqrt(nh),
+         lower.ci.N = mean.N - qt(1 - (0.05 / 2), nh - 1) * se.N,
+         upper.ci.N = mean.N + qt(1 - (0.05 / 2), nh - 1) * se.N,
+         lower.ci.W = mean.W - qt(1 - (0.05 / 2), nh - 1) * se.W,
+         upper.ci.W = mean.W + qt(1 - (0.05 / 2), nh - 1) * se.W)
+
+# add "my - missing years" to "natcatch" in order for plot to look nicer
+my <- data.frame(matrix(c(2012,"EST",0,0,0,0,0,0,0,0,0,0,0,0,0,
+                          2013,"EST",0,0,0,0,0,0,0,0,0,0,0,0,0,
+                          2014,"EST",0,0,0,0,0,0,0,0,0,0,0,0,0,
+                          2012,"LAT",0,0,0,0,0,0,0,0,0,0,0,0,0,
+                          2013,"LAT",0,0,0,0,0,0,0,0,0,0,0,0,0,
+                          2014,"LAT",0,0,0,0,0,0,0,0,0,0,0,0,0,
+                          2012,"LTU",0,0,0,0,0,0,0,0,0,0,0,0,0,
+                          2013,"LTU",0,0,0,0,0,0,0,0,0,0,0,0,0,
+                          2014,"LTU",0,0,0,0,0,0,0,0,0,0,0,0,0,
+                          2012,"POL",0,0,0,0,0,0,0,0,0,0,0,0,0,
+                          2013,"POL",0,0,0,0,0,0,0,0,0,0,0,0,0,
+                          2014,"POL",0,0,0,0,0,0,0,0,0,0,0,0,0
+),
+ncol=15,byrow=TRUE) )
+colnames(my) <- c("Year","Country","nh","sum.N","sum.W","mean.N","mean.W","sd.N","sd.W","se.N","se.W",
+                  "lower.ci.N","upper.ci.N","lower.ci.W","upper.ci.W")
+
+# change factors to integers for later rbind 
+my <- my %>% mutate_at(vars(1,3:15),as.character) %>% mutate_at(vars(1,3:15),as.double)
+
+natcatch <- rbind(data.frame(natcatch), data.frame(my))
+
+p12 <- ggplot(natcatch, aes(x = factor(Country), y = mean.N, fill = factor(Year))) +
+  geom_bar(stat = "identity", position="dodge", color = "black") +
+  #geom_errorbar (aes(ymin = lower.ci.N, ymax = upper.ci.N), stat="identity", position="dodge") +
+  theme_minimal() +
+  theme(legend.position = "right", plot.title = element_text(hjust = 0.5)) +
+  labs(x = "", y = "Number/haul") + #ylim(0, 14) +
+  scale_fill_grey(name = "Year")+ 
+  theme(plot.title=element_text(hjust = 0.5,  size = rel(1)), 
+        text=element_text(), legend.key.size = unit(0.4, "cm"),
+        axis.text.x=element_text(colour="black", size = 9),
+        axis.text.y=element_text(colour="black", size = 9))
+
+p13 <- ggplot(natcatch, aes(x = factor(Country), y = mean.W, fill = factor(Year))) +
+  geom_bar(stat = "identity", position="dodge", color = "black") +
+  #geom_errorbar (aes(ymin = lower.ci.W, ymax = upper.ci.W), stat="identity", position="dodge") +
+  theme_minimal() +
+  theme(legend.position = "right", plot.title = element_text(hjust = 0.5)) +
+  labs(x = "", y = "Weight (kg/haul)") + #ylim(0, 14) +
+  scale_fill_grey(name = "Year")+
+  theme(plot.title=element_text(hjust = 0.5,  size = rel(1)), 
+        text=element_text(), legend.key.size = unit(0.4, "cm"),
+        axis.text.x=element_text(colour="black", size = 9),
+        axis.text.y=element_text(colour="black", size = 9))
+
+# coord_fixed() allows to keep the original scales of the plot area
+p14 <- plot_grid(p12,p13, labels = "AUTO", ncol = 1, nrow = 2, align = "v") + coord_equal()
+p14
+
+```
+
+
+
+
+```{r encounter_probability}
+
+# lcer - litter categories encounters (without zero hauls)
+lcer <- lt %>% 
+  filter(Litter_category != "Zero haul") %>% 
+  select(Year, Quarter, Country, Ship, HaulNo,  Litter_category, LT_Items, LT_Weight)  %>%
+  group_by(Year, Quarter, Country, Ship, HaulNo, Litter_category) %>% 
+  # neh - number of encounter hauls, bacause without zero hauls
+  summarise(neh = length(unique(HaulNo)), sumN = sum(LT_Items), sumW = sum(LT_Weight)) %>% 
+  group_by(Year, Litter_category) %>% 
+  # nehy_lc - n. of enc. hauls per year per lit. cat.
+  summarise(nehy_lc = sum(neh), N = sum(sumN), W = sum(sumW))
+
+# find encounter probability with conf.int. using binomial test
+epci <- left_join(lcer, yan %>% select(1:2), by = c("Year")) %>% 
+  rename(nhy = nh) %>% 
+  mutate(N_per_haul = round( (N/nhy),3),
+         W_per_haul = round( (W/nhy),3)) %>% 
+  group_by(Year,Litter_category) %>% 
+  nest() %>% 
+  mutate(model = purrr::map(data,function(x) binom.test(x$nehy_lc,x$nhy) %>% 
+                              broom::tidy())) %>% 
+  unnest() %>% 
+  mutate(nhy_lc.upper = nhy*conf.high,
+         nhy_lc.low = nhy*conf.low) 
+
+# prepare the data for other binomial test for pairwise comparability
+bt <- epci %>% 
+  select(Year, Litter_category, nehy_lc, nhy, estimate,conf.low, conf.high) %>% 
+  arrange(Litter_category, Year) %>% 
+  group_by(Litter_category) %>% 
+  mutate(estimate_of_2012 = nth(estimate, 1)) %>%
+  ungroup() 
+
+# make the exact binomial test
+library(gtools)
+bt2 <- bt %>% 
+  group_by(Year, Litter_category) %>% 
+  do(broom::tidy(binom.test(.$nehy_lc, .$nhy, p= .$estimate_of_2012, alternative = "two.sided")$p.value)) %>% 
+  mutate(p.value = round(as.double(format(x, scientific = F)),3),
+         sign.stars= gtools::stars.pval(x)) %>% 
+  select(-x)
+
+# put p-value into the other table
+bt3 <- left_join(bt, bt2, by = c("Year", "Litter_category"))  
+
+btmean <- bt3 %>% 
+  group_by(Litter_category) %>% 
+  summarise(mean_est = mean(estimate))
+  
+p10 <- ggplot(bt3, aes(x = factor(Year), y = estimate)) +
+  geom_bar(stat="identity", position="dodge", width=.9, color="black", fill="grey") +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.5) +
+  facet_wrap(~Litter_category) +
+  geom_hline(data = btmean, aes(yintercept = mean_est), linetype = 2)+
+  geom_text(aes(label = sign.stars, y=0), size= 4)+
+  labs(x = "", y = "Encounter probability") +
+  theme(axis.text.x=element_text(colour="black", size = 6),
+        axis.text.y=element_text(colour="black", size = 8)) 
+
+# evaluation methods
+evalmeth <- plot_grid(p10, p8, p9, ncol = 1, labels = "AUTO")
+
+ggsave("evalmeth.jpg", plot = evalmeth, units = "mm", width = 140, height = 210 )
+
+#rm(bla, blup, epci,evalmeth,lcer,p8,p9,p10,waeh,yan,ysb,one, one_2, one_3, one_4, one_5, one_6, Year)
+
+
+
+```
+
+
+![Marine litter examples from the bottom of the Baltic Sea: A - metal, B - rubber, C,H,M - glas, D,G,L - wood natural products (wood), E,I - plastic (fishery litter), F,K - macroplastic, F, G - rest (textile), J,G,N - natural products (cinder stones, or coke (fuel)) ](litcat.png)
+
+![Evaluation methods](evalmeth.png)
+
+<!--
+# Spatial distribution of litter 
+
+\includegraphics[width=0.9\textwidth]{gis/zero_vs_litter_hauls.png}
+
+\includegraphics[width=0.9\textwidth]{gis/items_squared_haul.png}
+
+\includegraphics[width=0.9\textwidth]{gis/weight_squared_haul.png}
+
+quick counting gave me 190 squares, which suppose to be 50 km² => the whole area is: 190 * 50 = 95000 km²
+
+just for the sake of citation [@Galgani2015]
+-->
+
+
+# Litter subcategories
+
+
+```{r plastic}
+
+# filter out plastic category
+plastic <- lt %>% dplyr::filter(Litter_category == 'Plastic')
+
+# group by plastic subcategory
+pl <- plastic %>% 
+  select(PARAM_DESCR, LT_Items, LT_Weight) %>%
+  group_by(PARAM_DESCR) %>%
+  summarise(Items = sum(LT_Items), Weight = round(sum(LT_Weight),1)) %>% 
+  mutate(`Litter source` = ifelse(PARAM_DESCR %in% 
+                              c("Plastic fishing net",
+                                "Plastic synthetic rope",
+                                "Plastic fishing line (entangled)",
+                                "Plastic fishing line (monofilament)"), 
+                "Fishery litter", "Non-fishery litter") )
+
+# plot number of items
+p13 <- ggplot(pl, aes(x = reorder(PARAM_DESCR, Items), y = Items, fill = `Litter source`)) + 
+  geom_bar(stat = "identity", position = position_dodge(0.9), color = "black") +
+  geom_text(aes(label = paste(Items, "~",sprintf("%.0f%%",Items/sum(Items)*100))),
+            hjust = -0.2, colour="black",size = 3.5) +
+  theme_classic() + ylim(0,900) +
+  coord_flip() +
+  scale_fill_grey(start = 0.2, end = 0.8)+
+  labs(x = "Plastic subcategory", y = "Number of items") +
+  theme(plot.title=element_text(hjust = 0.5, size = rel(1.5)),
+        legend.position = "none",
+        axis.text.x=element_text(colour="black", size = 12),
+        axis.text.y=element_text(colour="black", size = 9));
+p13
+
+# plot weight
+p14 <- ggplot(pl, aes(x = reorder(PARAM_DESCR, Weight), y = Weight, fill = `Litter source`)) + 
+  geom_bar(stat = "identity", position = position_dodge(0.9), color = "black") +
+  geom_text(aes(label = paste(Weight, "~", sprintf("%.0f%%",Weight/sum(Weight)*100))), 
+            hjust=-0.1, colour="black",size = 3.5) +
+  theme_classic() + ylim(0,160) +
+  coord_flip() +
+  scale_fill_grey(start = 0.2, end = 0.8)+
+  labs(x = "Plastic subcategory", y = "Weight (kg)") +
+  guides(fill = guide_legend(title = "Litter source")) +
+  theme(plot.title=element_text(hjust = 0.5, size = rel(1.5)),
+        legend.position = c(0.75, 0.25),
+        axis.text.x=element_text(colour="black", size = 12),
+        axis.text.y=element_text(colour="black", size = 9));
+p14
+
+```
+
+```{r Ranking_of_subcategories}
+subcat <- lt %>% 
+  dplyr::filter(Litter_category != 'Zero haul') %>% 
+  select(PARAM_DESCR, LT_Items, LT_Weight) %>%
+  group_by(PARAM_DESCR) %>%
+  summarise(Items = sum(LT_Items), Weight = sum(LT_Weight)) %>% 
+  mutate(N_pr   = Items/sum(Items)*100,
+         W_pr   = Weight/sum(Weight)*100,
+         Litter_sourse = ifelse(PARAM_DESCR %in% 
+                              c("Fishing related metal",
+                                "Plastic fishing net",
+                                "Rubber bobbins (fishing)",
+                                "Plastic fishing line (entangled)",
+                                "Plastic fishing line (monofilament)"), 
+                              "Fishery litter", "Non-fishery litter"),
+         Litter_sourse_sr = ifelse(PARAM_DESCR %in% 
+                              c("Fishing related metal",
+                                "Plastic fishing net",
+                                "Plastic synthetic rope",
+                                "Rubber bobbins (fishing)",
+                                "Plastic fishing line (entangled)",
+                                "Plastic fishing line (monofilament)"), 
+                "Fishery litter", "Non-fishery litter") )
+
+rn <- ggplot(data = subcat, aes(x = reorder(PARAM_DESCR, N_pr), y = N_pr, fill = Litter_sourse_sr)) +
+  geom_bar(stat = "identity",position = position_dodge(0.9), color="black") +
+  geom_text(aes(label = paste(rank(-N_pr), "~", sprintf("%.1 f%%",N_pr), 
+                              "   (", rank(-W_pr), "~", sprintf("%.1 f%%",W_pr), ")" )), 
+            vjust=0.5, hjust=-0.25, size = 3, fontface ="bold" ) +
+  theme_classic() + ylim(0,60) +
+  coord_flip() + 
+  scale_fill_grey(start = 0.01, end = 0.8)+
+  labs(x = "", y = "Ranking of the percentages of all subcategories in \n terms of number of items and weight (in brackets)") +
+  guides(fill = guide_legend(title = "Litter source")) +
+  theme(text=element_text(), 
+        legend.position = c(0.75, 0.5),
+        axis.text.x=element_text(colour="black", size = 9),
+        axis.text.y=element_text(colour="black", size = 12))
+rn
+
+# rw <- ggplot(data = subcat, aes(x = reorder(PARAM_DESCR, W_pr), y = W_pr, fill = Litter_sourse_sr)) +
+#   geom_bar(stat = "identity",position = position_dodge(0.9), color="black") +
+#   geom_text(aes(label = paste(rank(-W_pr), "~",sprintf("%.1 f%%",W_pr))), 
+#             vjust=0.5, hjust=-0.25, size = 3, fontface ="bold" ) +
+#   theme_classic() + ylim(0,65) +
+#   coord_flip() + 
+#   scale_fill_grey(start = 0.01, end = 0.8)+
+#   labs(x = "", y = "Percentage of subcategories in terms of weight") +
+#   guides(fill = guide_legend(title = "Litter source")) +
+#   theme(text=element_text(), 
+#         legend.position = c(0.75, 0.5),
+#         axis.text.x=element_text(colour="black", size = 9),
+#         axis.text.y=element_text(colour="black", size = 12))
+# rw
+
+```
+
+
+```{r pl_f}
+
+# group by plastic subcategory without synthetic rope
+pl_f <- plastic %>%
+  select(Litter_sourse, LT_Items, LT_Weight) %>%
+  group_by(Litter_sourse) %>%
+  summarise(Items = sum(LT_Items), Weight = round(sum(LT_Weight))) %>% 
+  mutate(N_pr = round(Items/sum(Items)*100,1),
+         W_pr = round(Weight/sum(Weight)*100,1),
+         `Synthetic rope` = "without") 
+
+# group by plastic subcategory with synthetic rope
+pl_f_sr <- plastic %>%
+  select(Litter_sourse_sr, LT_Items, LT_Weight) %>%
+  group_by(Litter_sourse_sr) %>%
+  summarise(Items = sum(LT_Items), Weight = round(sum(LT_Weight))) %>% 
+  mutate(N_pr = round(Items/sum(Items)*100,1),
+         W_pr = round(Weight/sum(Weight)*100,1),
+         `Synthetic rope` = "with") 
+colnames(pl_f_sr) <- c("Litter_sourse", "Items", "Weight", "N_pr", "W_pr", "Synthetic rope")
+
+# combine two table into one
+pl_NW <- rbind(pl_f, pl_f_sr)
+
+# plot number of items
+p15 <- ggplot(pl_NW, aes(x = `Synthetic rope`, y = N_pr, fill = factor(reorder(Litter_sourse,-N_pr)))) + 
+   geom_bar(stat = "identity", position = position_stack(), color = "black") +
+   geom_text(data = pl_NW, aes(x = `Synthetic rope`, y = c(-3,103,-3,103), 
+                               label = paste0(Items, " ~ ", N_pr,"%")), size = 4)+
+  theme_classic() + 
+  theme(legend.position = "top", plot.title = element_text(hjust = 0.5)) +
+  labs(x = "", y = "Number of items") +
+  scale_fill_grey(start = 0.8, end = 0.2) +
+  guides(fill = guide_legend(title = "")) +
+  theme(plot.title=element_text(hjust = 0.5, size = rel(1.5)),
+        legend.position = "none",
+        axis.text.x=element_text(colour="black", size = 12),
+        axis.text.y=element_text(colour="black", size = 9))
+
+p15
+
+# plot number of kilograms
+p16 <- ggplot(pl_NW, aes(x = `Synthetic rope`, y = W_pr, fill = factor(reorder(Litter_sourse,-W_pr)))) + 
+   geom_bar(stat = "identity", position = position_stack(), color = "black") +
+   geom_text(data = pl_NW, aes(x = `Synthetic rope`, y = c(-3,103,-3,103), 
+                               label = paste0(Weight, " ~ ", W_pr,"%")), size = 4)+
+  theme_classic() + 
+  theme(legend.position = "top", plot.title = element_text(hjust = 0.5)) +
+  labs(x = "", y = "Weight (kg)") +
+  scale_fill_grey(start = 0.8, end = 0.2) +
+  guides(fill = guide_legend(title = "")) +
+  theme(plot.title=element_text(hjust = 0.5, size = rel(1.5)),
+        legend.position = "none",
+        axis.text.x=element_text(colour="black", size = 12),
+        axis.text.y=element_text(colour="black", size = 9))
+
+p16
+
+flall <- plot_grid(p13,p14,p15,p16, ncol = 2, labels = "AUTO")
+
+ggsave("flall.jpg", plot = flall, width = 11, height = 10)
+
+```
+
+```{r fishery_litter}
+# group by subcategory without synthetic rope
+f <- lt %>%
+  dplyr::filter(Litter_category != 'Zero haul') %>% 
+  select(Litter_sourse, LT_Items, LT_Weight) %>%
+  group_by(Litter_sourse) %>%
+  summarise(Items = sum(LT_Items), Weight = round(sum(LT_Weight))) %>% 
+  mutate(N_pr = round(Items/sum(Items)*100,1),
+         W_pr = round(Weight/sum(Weight)*100,1),
+         `Synthetic rope` = "without") 
+
+# group by subcategory with synthetic rope
+f_sr <- lt %>%
+  dplyr::filter(Litter_category != 'Zero haul') %>% 
+  select(Litter_sourse_sr, LT_Items, LT_Weight) %>%
+  group_by(Litter_sourse_sr) %>%
+  summarise(Items = sum(LT_Items), Weight = round(sum(LT_Weight))) %>% 
+  mutate(N_pr = round(Items/sum(Items)*100,1),
+         W_pr = round(Weight/sum(Weight)*100,1),
+         `Synthetic rope` = "with") 
+colnames(f_sr) <- c("Litter_sourse", "Items", "Weight", "N_pr", "W_pr", "Synthetic rope")
+
+# combine two table into one "fishery litter" table
+fl <- rbind(f, f_sr)
+
+
+# plot number of items
+p17 <- ggplot(fl, aes(x = `Synthetic rope`, y = N_pr, fill = factor(reorder(Litter_sourse,-N_pr)))) + 
+   geom_bar(stat = "identity", position = position_stack(), color = "black") +
+   geom_text(data = fl, aes(x = `Synthetic rope`, y = c(-3,103,-3,103), 
+                               label = paste0(Items, " ~ ", N_pr,"%")), size = 4)+
+  theme_classic() + 
+  theme(legend.position = "top", plot.title = element_text(hjust = 0.5)) +
+  labs(x = "", y = "Number of items") +
+  scale_fill_grey(start = 0.8, end = 0.2) +
+  guides(fill = guide_legend(title = "none")) +
+  theme(plot.title=element_text(hjust = 0.5, size = rel(1.5)),
+        axis.text.x=element_text(colour="black", size = 12),
+        axis.text.y=element_text(colour="black", size = 9))
+
+
+p17
+
+# plot number of kilograms
+p18 <- ggplot(fl, aes(x = `Synthetic rope`, y = W_pr, fill = factor(reorder(Litter_sourse,-W_pr)))) + 
+   geom_bar(stat = "identity", position = position_stack(), color = "black") +
+   geom_text(data = fl, aes(x = `Synthetic rope`, y = c(-3,103,-3,103), 
+                               label = paste0(Weight, " ~ ", W_pr,"%")), size = 4)+
+  theme_classic() + 
+  theme(legend.position = "top", plot.title = element_text(hjust = 0.5)) +
+  labs(x = "", y = "Weight (kg)") +
+  scale_fill_grey(start = 0.8, end = 0.2) +
+  guides(fill = guide_legend(title = "none")) +
+  theme(plot.title=element_text(hjust = 0.5, size = rel(1.5)),
+        axis.text.x=element_text(colour="black", size = 12),
+        axis.text.y=element_text(colour="black", size = 9))
+
+p18
+
+
+flsub <- ggdraw() +
+  draw_plot(rn, x = 0, y = 0, width = 0.7, height = 0.95) +
+  draw_plot(p17, x = 0.7, y = 0.5, width = .3, height = .45) +
+  draw_plot(p18, x = 0.7, y = 0, width = .3, height = .45) +
+  draw_plot_label(label = c("A", "B", "C"), size = 15,
+                  x = c(0, 0.7, 0.7), y = c(1, 1, 0.5)) + coord_equal()
+
+ggsave("flsub.jpg", plot = flsub, width = 11, height = 11)
+
+```
+
+
+
+```{r fl_evolution}
+
+# 1. without synthetic rope
+## find yearly numbers and weights by litter source
+fly <- lt %>% 
+  dplyr::filter(Litter_category != 'Zero haul') %>% 
+  select(Litter_sourse, Year, LT_Items, LT_Weight) %>%
+  group_by(Litter_sourse, Year) %>%
+  summarise(Items = sum(LT_Items), Weight = sum(LT_Weight)) %>% 
+  arrange(Year) 
+
+## find total yearly numbers and weights 
+flyt <- lt %>% group_by(Year) %>% summarise(tyi = sum(LT_Items), tyw = sum(LT_Weight))
+
+## join two tables in order to get new columns-total yearly items and total yearly weight
+fly <- left_join(fly,flyt, by = "Year")
+
+## calculate percentage for numbers and weights 
+fly <- fly %>% 
+  mutate(N_pr = round(Items/tyi*100,1),
+         W_pr = round(Weight/tyw*100,1),
+         `Synthetic rope` = "without") %>% 
+  dplyr::filter(Litter_sourse == "Fishery litter") %>%
+  ungroup() %>%
+  dplyr::select(-c(Litter_sourse))
+
+# 2. with synthetic rope
+## find yearly numbers and weights by litter source
+flysr <- lt %>% 
+  dplyr::filter(Litter_category != 'Zero haul') %>% 
+  select(Litter_sourse_sr, Year, LT_Items, LT_Weight) %>%
+  group_by(Litter_sourse_sr, Year) %>%
+  summarise(Items = sum(LT_Items), Weight = sum(LT_Weight)) %>% 
+  arrange(Year) 
+
+## find total yearly numbers and weights (take "flyt" from previous step)
+
+## join two tables in order to get new columns-total yearly items and total yearly weight
+flysr <- left_join(flysr,flyt, by = "Year")
+
+## calculate percentage for numbers and weights 
+flysr <- flysr %>% 
+  mutate(N_pr = round(Items/tyi*100,1),
+         W_pr = round(Weight/tyw*100,1),
+         `Synthetic rope` = "with") %>% 
+  dplyr::filter(Litter_sourse_sr == "Fishery litter") %>%
+  ungroup() %>%
+  dplyr::select(-c(Litter_sourse_sr))
+
+# 3. put two tables (with SR and witout SR) beneath each other
+fly_all <- rbind(fly, flysr)
+
+# 4. plot the results
+## plot number of items
+p19 <- ggplot(fly_all, aes(x = reorder(Year, Year), y = N_pr, fill = `Synthetic rope`)) +   
+  geom_bar(stat = "identity", position = position_dodge(0.9),
+           color = "black") + 
+  geom_text(aes(label = paste(
+    c(paste(N_pr[1:6], "%"), "","","","","","")) ),
+    vjust = -0.5, hjust = -0.2, colour="black",size = 2) +
+  geom_text(aes(label = paste(  
+    c("","","","","","",paste(N_pr[7:12],"%"))) ),
+    vjust = -0.5, hjust = 1.15, colour="black",size = 2) +
+  theme_classic() + ylim(0,12) +
+  theme(legend.position = "top", plot.title = element_text(hjust = 0.5)) +
+  labs(x = "", y = "Number of items (%)") +
+  scale_fill_grey(start = 0.2, end = 0.8)+
+  guides(fill = guide_legend(title = "Synthetic rope")) +
+  theme(axis.text.x=element_text(colour="black", size = 5),
+        axis.text.y=element_text(colour="black", size = 5),
+        axis.title = element_text(colour = "black", size = 7))
+
+p19
+
+## plot number of kilograms
+p20 <- ggplot(fly_all, aes(x = reorder(Year, Year), y = W_pr,
+                           fill = `Synthetic rope`)) +   
+  geom_bar(stat = "identity", position = position_dodge(0.9),
+           color = "black") + 
+  geom_text(aes(label = paste(
+    c(paste(W_pr[1:6], "%"), "","","","","","")) ),
+    vjust = -0.5, hjust = -0.2, colour="black",size = 2 ) +
+  geom_text(aes(label = paste(
+    c("","","","","","",paste(W_pr[7:12],"%"))) ), 
+    vjust = -0.5, hjust = 1.15, colour="black",size = 2) +
+  theme_classic() + ylim(0,7) +
+  theme(legend.position = "top", plot.title = element_text(hjust = 0.5)) +
+  labs(x = "", y = "Weight (%)") +
+  scale_fill_grey(start = 0.2, end = 0.8)+
+  theme(axis.text.x=element_text(colour="black", size = 5),
+        legend.position = "none",
+        axis.text.y=element_text(colour="black", size = 5),
+        axis.title = element_text(colour = "black", size = 7))
+
+p20
+
+```
+
+```{r fl_nat}
+# 1. without synthetic rope
+## find national numbers and weights by litter source
+fln <- lt %>%
+  dplyr::filter(Litter_category != 'Zero haul') %>%
+  select(Litter_sourse, Country, LT_Items, LT_Weight) %>%
+  group_by(Litter_sourse, Country) %>%
+  summarise(Items = sum(LT_Items), Weight = sum(LT_Weight))
+
+## find total national numbers and weights
+flnt <- lt %>% group_by(Country) %>% summarise(tni = sum(LT_Items), tnw = sum(LT_Weight))
+
+## join two tables in order to get new columns-total national items and total yearly weight
+fln <- left_join(fln,flnt, by = "Country")
+
+## calculate percentage for numbers and weights
+fln <- fln %>%
+  mutate(N_pr = round(Items/tni*100,1),
+         W_pr = round(Weight/tnw*100,1),
+         `Synthetic rope` = "without") %>%
+  dplyr::filter(Litter_sourse == "Fishery litter") %>%
+  ungroup() %>%
+  dplyr::select(-c(Litter_sourse))
+
+# 2. with synthetic rope
+## find yearly numbers and weights by litter source
+flnsr <- lt %>%
+  dplyr::filter(Litter_category != 'Zero haul') %>%
+  select(Litter_sourse_sr, Country, LT_Items, LT_Weight) %>%
+  group_by(Litter_sourse_sr, Country) %>%
+  summarise(Items = sum(LT_Items), Weight = sum(LT_Weight))
+
+## find total yearly numbers and weights (take "flnt" from previous step)
+
+## join two tables in order to get new columns-total yearly items and total yearly weight
+flnsr <- left_join(flnsr,flnt, by = "Country")
+
+## calculate percentage for numbers and weights
+flnsr <- flnsr %>%
+  mutate(N_pr = round(Items/tni*100,1),
+         W_pr = round(Weight/tnw*100,1),
+         `Synthetic rope` = "with") %>%
+  dplyr::filter(Litter_sourse_sr == "Fishery litter") %>%
+  ungroup() %>%
+  dplyr::select(-c(Litter_sourse_sr))
+
+# 3. put two tables (with SR and witout SR) beneath each other
+fln_all <- rbind(fln, flnsr)
+
+# 4. add "mc - missing countries" to "natcontr" in order to be able to plot missing quarters
+
+## first create missing vectors
+mc <- data.frame(matrix(c("EST",0,0,0,0,0,0,"without",
+                          "LAT",0,0,0,0,0,0,"without"),
+                          nrow=2,byrow=TRUE) )
+
+## name the columns exactly like in "natcontr", otherwise "rbind" wouldnt work
+colnames(mc) <- c("Country", "Items", "Weight", "tni", "tnw", "N_pr", "W_pr", "Synthetic rope")
+
+## reformat columns exactly like in "natcontr", otherwise "rbind" wouldnt work.
+## they are all "factors" in the beginning. "factors" can't be converted to "integer" directly,
+## thus, first convert to "character", then to "integer"
+mc$Country  <- as.character(mc$Country)
+mc$Items    <- as.integer(as.character(mc$Items))
+mc$Weight   <- as.integer(as.character(mc$Weight))
+mc$tni      <- as.integer(as.character(mc$tni))
+mc$tnw      <- as.integer(as.character(mc$tnw))
+mc$N_pr     <- as.integer(as.character(mc$N_pr))
+mc$W_pr     <- as.integer(as.character(mc$W_pr))
+mc$`Synthetic rope`<- as.character(mc$`Synthetic rope`)
+
+## bind two data frames beneath each other
+fln_all <- rbind(data.frame(fln_all), data.frame(mc))
+
+## I don't know for what reason "Syntheric. rope", has a point in it, so, I have to fix it
+colnames(fln_all) <- c("Country", "Items", "Weight", "tni", "tnw", "N_pr", "W_pr", "Synthetic rope")
+fln_all <- fln_all %>% arrange(desc(`Synthetic rope`) )
+
+# 5. plot the results
+## plot number of items
+p21 <- ggplot(fln_all, aes(x = reorder(Country, -N_pr), y = N_pr,
+                           fill = `Synthetic rope`)) +
+  geom_bar(stat = "identity", position = position_dodge(0.9),
+           color = "black") +
+  geom_text(aes(label = paste(
+    c(paste(N_pr[1:7], "%"), "","","","","","","")) ),
+    vjust = -0.5, hjust = -0.2, colour="black",size = 3.5 ) +
+  geom_text(aes(label = paste(
+    c("","","","","","","",paste(N_pr[8:14],"%"))) ),
+    vjust = -0.5, hjust = 1.15, colour="black",size = 3.5) +
+  theme_classic() + ylim(0,15) +
+  theme(legend.position = "top", plot.title = element_text(hjust = 0.5)) +
+  labs(x = "", y = "Number of items (%)") +
+  scale_fill_grey(start = 0.2, end = 0.8)+
+  theme(axis.text.x=element_text(colour="black", size = 12),
+        legend.position = "none",
+        axis.text.y=element_text(colour="black", size = 9))
+
+p21
+
+## plot number of kilograms
+p22 <- ggplot(fln_all, aes(x = reorder(Country, -W_pr), y = W_pr,
+                           fill = `Synthetic rope`)) +
+  geom_bar(stat = "identity", position = position_dodge(0.9),
+           color = "black") +
+  geom_text(aes(label = paste(
+    c(paste(W_pr[1:7], "%"), "","","","","","","")) ),
+    vjust = -0.5, hjust = -0.2, colour="black",size = 3.5 ) +
+  geom_text(aes(label = paste(
+    c("","","","","","","",paste(W_pr[8:14],"%"))) ),
+    vjust = -0.5, hjust = 1.15, colour="black",size = 3.5) +
+  theme_classic() + ylim(0,20) +
+  theme(legend.position = "top", plot.title = element_text(hjust = 0.5)) +
+  labs(x = "", y = "Weight (%)") +
+  scale_fill_grey(start = 0.2, end = 0.8)+
+  theme(axis.text.x=element_text(colour="black", size = 5),
+        legend.position = "none",
+        axis.text.y=element_text(colour="black", size = 5),
+        axis.title = element_text(colour = "black", size = 7))
+
+p22
+
+```
+
+```{r fl_evol_nat}
+
+# This code just check on one of the reviewers comments:
+
+# 1. without synthetic rope
+## find yearly numbers and weights by litter source
+flnatevol <- lt %>% # fishery litter national evolution
+  dplyr::filter(Litter_category != 'Zero haul') %>% 
+  select(Litter_sourse, Year, Country, LT_Items, LT_Weight) %>%
+  group_by(Litter_sourse, Year, Country) %>%
+  summarise(Items = sum(LT_Items), Weight = sum(LT_Weight)) %>% 
+  arrange(Year) 
+
+## find total yearly numbers and weights 
+flnatyt <- lt %>% group_by(Year, Country) %>% summarise(tyi = sum(LT_Items), tyw = sum(LT_Weight))
+
+## join two tables in order to get new columns-total yearly items and total yearly weight
+flnaty <- left_join(flnatevol,flnatyt, by = c("Year", "Country"))
+
+## calculate percentage for numbers and weights 
+flnaty <- flnaty %>% 
+  mutate(N_pr = round(Items/tyi*100,1),
+         W_pr = round(Weight/tyw*100,1),
+         `Synthetic rope` = "without") %>% 
+  dplyr::filter(Litter_sourse == "Fishery litter") %>%
+  ungroup() %>%
+  dplyr::select(-c(Litter_sourse))
+
+# 2. with synthetic rope
+## find yearly numbers and weights by litter source
+flnatevolsr <- lt %>% # fishery litter national evolution
+  dplyr::filter(Litter_category != 'Zero haul') %>% 
+  select(Litter_sourse_sr, Year, Country, LT_Items, LT_Weight) %>%
+  group_by(Litter_sourse_sr, Year, Country) %>%
+  summarise(Items = sum(LT_Items), Weight = sum(LT_Weight)) %>% 
+  arrange(Year)
+
+## find total yearly numbers and weights (take "flyt" from previous step)
+
+## join two tables in order to get new columns-total yearly items and total yearly weight
+flynatsr <- left_join(flnatevolsr,flnatyt, by = c("Year", "Country"))
+
+## calculate percentage for numbers and weights 
+flynatsr <- flynatsr %>% 
+  mutate(N_pr = round(Items/tyi*100,1),
+         W_pr = round(Weight/tyw*100,1),
+         `Synthetic rope` = "with") %>% 
+  dplyr::filter(Litter_sourse_sr == "Fishery litter") %>%
+  ungroup() %>%
+  dplyr::select(-c(Litter_sourse_sr))
+
+# 3. put two tables (with SR and witout SR) beneath each other
+flynat_all <- rbind(flnaty, flynatsr)
+
+# 4. plot the results
+## plot number of items
+p19.1 <- ggplot(flynat_all, aes(x = reorder(Year, Year), y = N_pr, fill = `Synthetic rope`)) +   
+  geom_bar(stat = "identity", position = position_dodge(0.9),
+           color = "black") + 
+  facet_wrap(~Country)+
+  theme_classic() + #ylim(0,12) +
+  theme(legend.position = "top", plot.title = element_text(hjust = 0.5)) +
+  labs(x = "", y = "Number of items (%)") +
+  scale_fill_grey(start = 0.2, end = 0.8)+
+  theme(axis.text.x=element_text(colour="black", size = 12),
+        axis.text.y=element_text(colour="black", size = 9))
+
+p19.1
+
+ggsave("flnaty.png", plot = p19.1, width = 10, height = 10)
+
+## plot number of kilograms
+p20.1 <- ggplot(flynat_all, aes(x = reorder(Year, Year), y = W_pr,
+                           fill = `Synthetic rope`)) +   
+  geom_bar(stat = "identity", position = position_dodge(0.9),
+           color = "black") + 
+  facet_wrap(~Country)+
+  theme_classic() + #ylim(0,7) +
+  theme(legend.position = "top", plot.title = element_text(hjust = 0.5)) +
+  labs(x = "", y = "Weight (%)") +
+  scale_fill_grey(start = 0.2, end = 0.8)+
+  theme(axis.text.x=element_text(colour="black", size = 12),
+        legend.position = "none",
+        axis.text.y=element_text(colour="black", size = 9))
+
+p20.1
+
+ggsave("flnatysr.png", plot = p20.1, width = 10, height = 10)
+
+
+```
+
+
+```{r fl_nat2}
+
+
+# blup <- lt %>% 
+#   group_by(Year, Quarter, Country, Ship)  %>% # Denish guys have two different ships
+#   summarise(nh = length(unique(HaulNo))) %>% # "unique" is a key!
+#   group_by(Country) %>%
+#   summarise(nh2 = sum(nh)) 
+# 
+# # without synthetic rope
+# blup2 <- lt %>% 
+#   group_by(Year, Quarter, Country, Ship, Litter_sourse)  %>% # Denish guys have two different ships
+#   summarise(sumN = sum(LT_Items),
+#             sumW = sum(LT_Weight)) %>% # "unique" is a key!
+#   group_by(Country, Litter_sourse) %>%
+#   summarise(sumN2 = sum(sumN), sumW2 = sum(sumW)) %>% 
+#   filter(Litter_sourse != "Zero haul")
+# 
+# blup3 <- left_join(blup, blup2, by = "Country") %>% mutate(sr = "without")
+# 
+# # with synthetic rope
+# blap2 <- lt %>% 
+#   group_by(Year, Quarter, Country, Ship, Litter_sourse_sr) %>% # Denish guys have two different ships
+#   summarise(sumN = sum(LT_Items),
+#             sumW = sum(LT_Weight)) %>% # "unique" is a key!
+#   group_by(Country, Litter_sourse_sr) %>%
+#   summarise(sumN2 = sum(sumN), sumW2 = sum(sumW)) %>% 
+#   filter(Litter_sourse_sr != "Zero haul") %>% 
+#   rename(Litter_sourse = Litter_sourse_sr)
+# 
+# blap3 <- left_join(blup, blap2, by = "Country") %>% mutate(sr = "with")
+# 
+# blup4 <- rbind(blup3, blap3) %>% 
+#   mutate(nph = round(sumN2/nh2,3),
+#          wph = round(sumW2/nh2,3))
+# 
+# # add missing rows
+# mr <- data.frame(matrix(c("EST",29,"Fishery litter",0,0,"without",0,0,
+#                           "LAT",106,"Fishery litter",0,0,"without",0,0),
+#                         nrow=2,byrow=TRUE) ) %>% 
+#   mutate_at(vars(2,4,5,7,8), funs(as.character)) %>% 
+#   mutate_at(vars(2,4,5,7,8), funs(as.double))
+# colnames(mr) <- names(blup4)
+# 
+# blup5 <- rbind(blup4, mr) %>% 
+#   arrange(Country, sr)
+# 
+# blup6 <- blup5 %>% group_by(Country,sr) %>% summarise(sum(nph),sum(wph))
+# 
+# blup7 <-left_join(blup5, blup6) %>% 
+#   mutate(N_pr = round( (nph*100)/`sum(nph)`,2),
+#          W_pr = round( (wph*100)/`sum(wph)`,2)) %>% 
+#   filter(Litter_sourse == "Fishery litter") %>% 
+#   rename(`Synthetic rope` = sr)
+# 
+# # plot
+# ggplot(blup7, aes(x = reorder(Country, -N_pr), y = N_pr,
+#                            fill = `Synthetic rope`)) +
+#   geom_bar(stat = "identity", position = position_dodge(0.9),
+#            color = "black") +
+#   geom_text(aes(label = paste(
+#     c(paste(N_pr[1:7], "%"), "","","","","","","")) ),
+#     vjust = -0.5, hjust = -0.2, colour="black",size = 3.5 ) +
+#   geom_text(aes(label = paste(
+#     c(paste(Items[1:7], "~"), "","","","","","","")) ),
+#     vjust = -2, hjust = -0.2, colour="black",size = 3.5 ) +
+#   geom_text(aes(label = paste(
+#     c("","","","","","","",paste(N_pr[8:14],"%"))) ),
+#     vjust = -0.5, hjust = 1.15, colour="black",size = 3.5) +
+#   geom_text(aes(label = paste(
+#     c("","","","","","","",paste(Items[8:14],"~"))) ),
+#     vjust = -2, hjust = 2.15, colour="black",size = 3.5) +
+#   theme_classic() + ylim(0,15) +
+#   theme(legend.position = "top", plot.title = element_text(hjust = 0.5)) +
+#   labs(x = "", y = "Number of items (%)") +
+#   scale_fill_grey(start = 0.2, end = 0.8)+
+#   theme(axis.text.x=element_text(colour="black", size = 12),
+#         legend.position = "none",
+#         axis.text.y=element_text(colour="black", size = 9))
+
+```
+
+```{r fl_subcat}
+
+# 1. first group by subcategory without synthetic rope
+fl_sc <- lt %>%
+  dplyr::filter(Litter_category != 'Zero haul') %>%
+  dplyr::filter(Litter_sourse == "Fishery litter") %>%
+  select(PARAM_DESCR, LT_Items, LT_Weight) %>%
+  group_by(PARAM_DESCR) %>%
+  summarise(Items = sum(LT_Items), Weight = sum(LT_Weight)) %>%
+  mutate(N_pr = round(Items/sum(Items)*100),
+         W_pr = round(Weight/sum(Weight)*100),
+         `Synthetic rope` = "without")
+
+# create a missing line
+ml <- data.frame(matrix(c("Plastic synthetic rope",0,0,0,0,"without"),
+                          nrow=1,byrow=TRUE) )
+
+## name the columns exactly like in "fl_sc", otherwise "rbind" wouldnt work
+colnames(ml) <- c("PARAM_DESCR", "Items", "Weight", "N_pr", "W_pr", "Synthetic rope")
+
+## reformat columns exactly like in "fl_sc", otherwise "rbind" wouldnt work; they are all "factors" in the beginning. "factors" can't be converted to "integer" directly; thus, first convert to "character", then to "integer"
+ml$Items    <- as.integer(as.character(ml$Items))
+ml$Weight   <- as.integer(as.character(ml$Weight))
+ml$N_pr     <- as.integer(as.character(ml$N_pr))
+ml$W_pr     <- as.integer(as.character(ml$W_pr))
+
+## bind two data frames beneath each other
+fl_sc <- rbind(data.frame(fl_sc), data.frame(ml))
+
+## I don't know for what reason "Syntheric. rope", has a point in it, so, I have to fix it
+colnames(fl_sc) <- c("PARAM_DESCR", "Items", "Weight", "N_pr", "W_pr", "Synthetic rope")
+fl_sc <- fl_sc %>% arrange(desc(`Synthetic rope`) ) 
+
+# 2. then group by subcategory with synthetic rope
+fl_sc_sr <- lt %>%
+  dplyr::filter(Litter_category != 'Zero haul') %>%
+  dplyr::filter(Litter_sourse_sr == "Fishery litter") %>%
+  select(PARAM_DESCR, LT_Items, LT_Weight) %>%
+  group_by(PARAM_DESCR) %>%
+  summarise(Items = sum(LT_Items), Weight = sum(LT_Weight)) %>%
+  mutate(N_pr = round(Items/sum(Items)*100),
+         W_pr = round(Weight/sum(Weight)*100),
+         `Synthetic rope` = "with")
+
+# 3. combine two tables
+fl_subcat <- rbind(fl_sc,fl_sc_sr)
+# sort
+fl_subcat <- fl_subcat %>% arrange(`Synthetic rope`) %>% mutate(Weight = round(Weight))
+
+# 4. plot the results
+## plot number of items
+p23 <- ggplot(fl_subcat, aes(x = reorder(PARAM_DESCR, N_pr), y = N_pr,
+                           fill = `Synthetic rope`)) +
+  geom_bar(stat = "identity", position = position_dodge(0.9),
+           color = "black") +
+  coord_flip() +
+  geom_text(aes(label = paste(
+    c(Items[1:6],"","","","","",""),
+    c("~","~","~","~","~","~","","","","","",""),
+    c(paste(N_pr[1:6], "%"), "","","","","","")) ),
+    vjust = 1.5, hjust = -0.15, colour="black",size = 3.5 ) +
+  geom_text(aes(label = paste(
+    c("","","","","","",Items[7:12]),
+    c("","","","","","","~","~","~","~","~","~"),
+    c("","","","","","",paste(N_pr[7:12],"%"))) ),
+    vjust = -0.75, hjust = -0.15, colour="black",size = 3.5) +
+  theme_classic() + ylim(0,90) +
+  theme(legend.position = "top") +
+  labs(x = "", y = "Number of items (%)") +
+  scale_fill_grey(start = 0.2, end = 0.8)+
+  theme(axis.text.x=element_text(colour="black", size = 12),
+        legend.position = "none",
+        axis.text.y=element_text(colour="black", size = 9))
+
+p23
+
+## plot number of kilograms
+p24 <- ggplot(fl_subcat, aes(x = reorder(PARAM_DESCR, W_pr), y = W_pr,
+                           fill = `Synthetic rope`)) +
+  geom_bar(stat = "identity", position = position_dodge(0.9),
+           color = "black") +
+  coord_flip() +
+  geom_text(aes(label = paste(
+    c(Weight[1:6],"","","","","",""),
+    c("~","~","~","~","~","~","","","","","",""),
+    c(paste(W_pr[1:6], "%"), "","","","","","")) ),
+    vjust = 1.5, hjust = -0.15, colour="black",size = 3.5 ) +
+  geom_text(aes(label = paste(
+    c("","","","","","",Weight[7:12]),
+    c("","","","","","","~","~","~","~","~","~"),
+    c("","","","","","",paste(W_pr[7:12],"%"))) ),
+    vjust = -0.75, hjust = -0.15, colour="black",size = 3.5) +
+  theme_classic() + ylim(0,50) +
+  theme(legend.position = "top") +
+  labs(x = "", y = "Weight (%)") +
+  scale_fill_grey(start = 0.2, end = 0.8)+
+  theme(axis.text.x=element_text(colour="black", size = 12),
+        legend.position = "none",
+        axis.text.y=element_text(colour="black", size = 9))
+
+p24
+
+#fllast <- plot_grid(p19, p20, p21, p22, p23, p24,
+                    #labels = "AUTO", nrow = 3)
+fllast2 <- plot_grid(p19, p20, labels = "AUTO", label_size = 7, nrow = 2)
+
+#ggsave("fllast.png", plot=fllast, width = 14, height = 14)
+ggsave("fllast2.jpg", plot= fllast2, units = "mm", width = 90, height = 90)
+
+
+
+```
+
+```{r}
+
+# speculation on the Baltic Sea cleaning
+# our effort: 2377 hauls * 30 min/haul = ca. 50 days
+# beltic commercial fishery effort: 192230
+
+(6828*192230)/ 50 / 1000000
+(2412*192230)/ 50 / 1000
+
+# onother check on one of the reviewers comments:
+blup = lt %>% 
+  filter(Litter_sourse_sr == "Fishery litter")
+table(blup$Litter_sourse_sr)
+kable(table(blup$Year, blup$Country))
+
+```
+
