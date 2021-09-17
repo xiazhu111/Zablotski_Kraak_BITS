@@ -1,0 +1,319 @@
+---
+title: Marine litter on the Baltic seafloor collected by the international fish-trawl
+  survey
+author: "Yury Zablotski, Sarah B. M. Kraak^[Thuenen Institute of Baltic Sea Fisheries]"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  word_document: default
+biblio-style: apalike
+fontfamily: mathpazo
+fontsize: 11pt
+geometry: margin=1in
+link-citations: yes
+bibliography: library.bib
+abstract: Marine litter is a global concern. Since most of the litter sinks, understanding
+  the composition of benthic marine litter is crucial for addressing this concern.
+  However, high costs of seafloor monitoring inhibit such understanding. Consequently,
+  benthic marine litter in the Baltic Sea has not been comprehensively addressed yet.
+  Here we present data from 2377 hauls, which collected 6828 litter items and 2412
+  kilograms on the Baltic seafloor during six years of the Baltic International Trawl
+  Survey (BITS) by seven nations. Our results show lower percentages of plastic (35%)
+  than the widely cited world average (70%) and less fishery-originated litter (2.2-5.6%)
+  than was previously reported for the Baltic Sea (4-24%). Natural products, mostly
+  residuals of burnt coal, were identified as the most common litter category (42-57%)
+  and were largely ignored in the past. Our results highlight the importance of using
+  several evaluation metrics, particularly number of items, weight and encounter probability.
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+
+library(tidyverse)
+library(tigerstats)
+library(knitr)
+library(knitcitations)
+library(DBI)
+library(scales)
+library(gridExtra)
+library(grid)
+library(lattice)
+library(reshape2)
+library(psych)
+library(ggthemes)
+library(scales)
+library(ggpubr)
+library(cowplot)
+library(devtools)
+library(lubridate)
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE
+)
+
+```
+
+**Key words:** Baltic marine litter, fishery-originated litter, plastic, natural products, trawl survey
+
+
+# Introduction
+
+Marine litter is a fast growing global problem [@Pham2014]. Annual entry of debris into the ocean in e.g. 2010 is estimated to be between 4.8 and 12.7 million tonnes [@Jambeck2015; @UNEP2009]. Litter not only has deleterious effects on marine life via entanglement [@Neilson2009; @Allen2012; @Carr1987; @Schrey1987], ingestion [@Jones1995] and smothering [@Kuhn2015], but also produces economic costs arising from removing debris, recovering from damage and lost revenue [@Newman2015] for numerous industries. For example, tourism suffers from pollution of beaches and coasts which can discourage visitors; shipping suffers damage via fouling of ship propulsion equipment or cooling systems and has direct costs linked to repairs and indirect costs related to loss of productivity and disrupted supply chains; finally, fisheries has direct costs from damaged gear and indirect costs from catch reduction, for example caused by ghost fishing [@UNEPGRID2016]. 
+
+But the indirect costs to fishery caused by marine litter do not stop there. For instance, zooplankton consuming micro-plastic significantly decreases in nutritional value [@Cole2015; @Lee2013], which might reduce growth rates of planktivorous fish larvae. Macro-plastic ingested by adult fish may slow down their growth because litter saturates without nourishing due to the absence of any nutritional value. That, in consequence, may result in smaller fish. Moreover, when caught by the trawl net litter occupies the space of potential catch. Fish mortality caused by the ingestion of marine litter also reduces catch [@UNEPGRID2016]. Therefore, knowing the amounts and weight of marine litter might help to account for such losses, e.g. in stock assessments. On the other hand, marine litter might serve as a substrate and is often colonised by the fauna, which might increase the local biodiversity [@Urban-Malinga2018].
+
+Interestingly, given that marine litter has a negative impact on fisheries, some studies claim fisheries-originated litter to be the most abundant litter category [@Buhl-Mortensen2017; @Bergmann2017]. Moreover, derelict fishing nets, also known as "ghost nets" can cause fish mortality and are responsible for the most dramatic pictures of entangled and smothered organisms. How many nets are lost in Europe remains unclear, because the findings of different studies are difficult to compare. A recent analysis by Kammann[^2] reported fishery-originated litter to be up to 24% of all litter in terms of number of items for the Baltic Sea. The majority of the 24% consisted of plastic synthetic rope, which might originate from fishing gear. Since it is unknown how much of the synthetic rope is in fact of fishery origin, Kammann[^3] proposed two extreme definitions of fishery-originated litter: one comprising fishing line (monofilament), fishing line (entangled) and fishing net, while the other additionally comprised synthetic rope. Here, we use a significantly larger sample size in order to complement this analysis by exploring, first, all litter categories in the Baltic Sea and secondly, the amounts of fishery-originated litter in general and fishery-originated litter across subcategories, including "ghost nets", quantifying it with as well as without synthetic rope.
+
+Besides the fishery-originated litter, plastic is often believed to be the major part of marine debris [@Galgani2015; @Derraik2002; @Barnes2009; @Sheavly2007] and, despite the clear definition for marine litter given by the United Nations as “any persistent, manufactured or processed solid material discarded, disposed or abandoned in the marine and coastal environment” [@UNEP2009], plastic is often treated as a resumptive/generalising term for all the litter. However, plastic densities on the beaches and on the sea-surface are usually higher [@Galil1995; @Galgani1995; @Galgani2000] than on the seafloor [@Galgani2015], which makes complete sense since heavier litter particles, like glass, metal or clinker immediately sink to the sea floor while plastic can remain on the surface. Nevertheless, the widely accepted average proportion of plastic in marine litter is believed to be 70\% [@Galgani2000; @UNEPGRID2016], despite the fact that results from different monitoring methods, such as beach, sea surface, pelagic and seafloor monitoring, have not been evaluated together yet. Thus, focus on plastic might distract the attention from less studied litter categories, e.g. metal or natural products such as clinker (stony residue from burnt coal) or processed wood.
+
+But if the monitoring methods have not been evaluated together yet, where do numerical statements, such as "70% of marine litter is plastic" come from? Well, beach monitoring is the most cost effective and, therefore, the most often used in assessing marine litter. Thus, the widely accepted views that near 80\% of marine debris is land-based [@Newman2015] and that 70% of it is plastic might likely originate from beach monitoring. However, it is not clear whether beach litter ever ends up in water far from the coast [@Jones1995], and if it does, whether it washes up back on the coast or further into the sea. Conversely, it is not clear whether, or to what extent, litter originating from vessels ends up on the beach. Therefore, despite the importance of findings from beach monitoring, they need to be complemented with other approaches. Currents and winds complicate the identification of litter sources, which lowers the amount of useful information gathered from the sea-surface and pelagic litter samplings. Furthermore, macro-litter either accumulates in some places, like five great ocean gyres [@Cozar2014], or is almost missing (while sometimes detected) in the others. Because of this, such knowledge is difficult to extrapolate to other areas and is often insufficient for a solid statement. Moreover, ca. 70\% of the litter is estimated to sink to the seafloor [@Pham2014] due to the fouling and colonisation by organisms [@Derraik2002]. Consequently, marine debris might accumulate at the seafloor and decompose only slowly or not at all [@Galgani2015; @Barnes2009]. Therefore, investigating marine litter on the seafloor is an important missing piece of the puzzle in the bigger picture of the marine litter problem.
+
+Unfortunately, benthic litter monitoring for its own sake is very expensive [@Pham2014]. One of the possible solutions for this problem, implemented by the International Council for the Exploration of the Sea (ICES), was to include litter monitoring into the existing bottom trawl fisheries surveys. Thus, this study analyses marine litter data collected on the Baltic seafloor obtained from 2377 hauls of such a survey, namely the Baltic International Trawl Survey (BITS), carried out during six years by seven European countries. While, despite the difficulties, the seafloor of some European areas, i.e. the Mediterranean and the Celtic Sea [@Galgani2000; @Moriarty2016; @Pham2014; @UNEPGRID2016] has recently been monitored via bottom trawl fisheries surveys, the Baltic Sea received relatively little attention (but see @Galgani2000; @Kammann2018; @Urban-Malinga2018). Therefore, this study aims to contribute to the modest body of knowledge about marine litter on the Baltic seafloor, which hereby addresses one of the biggest hurdles of benthic litter research, lack of data [@Pham2014].
+
+Another hurdle in marine litter research is the comparability of results. Thus, earlier studies used not only different types of monitoring, but also different litter categorisation, different fishing gears etc. In contrast, bottom trawl fisheries surveys are internationally standardised, i.e. they use the IBTS Protocol [@ICES2017; @Moriarty2016; @Kammann2018] for litter categorisation, which is currently considered to be the state-of-the-art in Europe, since it aims to collect such important metrics as "Number of items", "Weight", "Size" etc., and could therefore be highly comparable across the globe. Previously only “Number of items” was often used to describe litter distribution and densities. @Pham2014 emphasized the importance of using more than one evaluation metric to avoid over- or underestimation. Particularly, weight was suggested to be a meaningful supplementary metric, which might help to avoid possible overestimation of litter amounts if only evaluating number of items. Here we go one step further and propose the encounter probability in hauls as an additional evaluation possibility along with number of items and weight.
+
+Thus, this study aims to report the most comprehensive (6 years, 7 nations) up to date (2018) dataset of benthic marine litter in the Baltic Sea, to emphasize the importance of litter categories other than plastic, shed more light on the origin of marine litter data and critically evaluate current benthic litter monitoring. Besides, we aim to explore the fishery-originated litter in the Baltic Sea.
+
+# Materials and Methods 
+
+```{r}
+fig_nums <- captioner::captioner(prefix = "Fig.")
+
+f.ref <- function(x) {
+  stringr::str_extract(fig_nums(x), "[^:]*")
+}
+```
+
+**Survey duration, participants and area**
+
+We analysed the publicly available data from the BITS [@ICES2017]. The survey was conducted twice per year (in the first quarter of the year, Q1 and in the fourth quarter of the year, Q4) and we used the data of six years (2012-2017), resulting in 2377 fishing hauls carried out during 53 cruises. Denmark, Germany and Sweden participated throughout the six years, whereas Poland, Latvia, Lithuania and Estonia joined the litter monitoring program within the survey only in the last three years, with varying degrees of participation in terms numbers of hauls (`r f.ref("natcontr")`).
+
+```{r natcontr}
+natcontr <- fig_nums(name = "natcontr", caption = "National contribution to the marine litter monitoring program within the BITS. Participants of the survey: Denmark (DEN), Germany (GFR), Sweden (SWE), Poland (POL), Estonia (EST), Latvia (LAT) and Lithuania (LTU).")
+```
+
+```{r fig.cap=natcontr}
+include_graphics('natcontr.jpg')
+```
+
+
+The BITS used a random stratified design with catch stations selected from a set of known trawlable sites between 54.09 and 58.65 degrees latitude and between 9.63 and 22.20 degrees longitude. This territory covered the following ICES subdivisions (SD): Kattegat (SD 21), Belt Sea (SD 22), Sound (SD 23), Baltic West of Bornholm (SD 24), Southern Central Baltic - West (SD 25), Southern Central Baltic - East (SD 26), West of Gotland (SD 27), East of Gotland (SD 28-2), Gulf of Riga (SD 28-1) and Archipelago Sea (SD 29). Each country runs their BITS in their own territory (`r f.ref("map")`). 
+
+
+```{r map}
+map <- fig_nums(name = "map", caption = "Area covered by different nations during marine litter monitoring program within the BITS. Participants of the survey: for acronyms see caption of figure 1.")
+#`r fig_nums('natcontr')` # old peace of code which worked but does not not do much
+
+```
+
+```{r fig.cap=map}
+include_graphics("map.jpg")
+# `r fig_nums("map")`
+```
+
+
+**Fishing method**
+
+Trawl samples were collected using eight different research vessels: Dana (DAN2) and Havfisken (HAF) from Denmark, Solea (SOL2) from Germany, Dana (DANS) from Sweden, Baltica (BAL) from Poland, Charter (CEV) from Estonia, Baltica (BALL) from Latvia and Darius (DAR) from Lithuania. Denmark used both ships at the same time during 2012-2015 and only Dana in 2016 and 2017. Trawl samples were collected using one of the two standard fishing gears: large standard trawl TVL - TV-3 930 meshes (BAL, BALL, DANS2, DANS) and small standard trawl TVS - TV-3 520 meshes (CEV, DAR, HAF, SOL2), both with a 20mm-diamond stretched mesh size at the cod-end [@ICES2017]. Hauls were performed using a standard towing speed of three knots, with a standard haul duration of around 30 minutes. Hauls were conducted at depths ranging from 6 to 128 meters, with the average distance towed over ground of 2730, 95\% CI[2715, 2745] meters. The gear was controlled to stay in good contact with the seabed during the entire haul. More details can be drawn from the Manual for the Baltic International Trawl Surveys (BITS) [@ICES2017].
+
+Litter items were counted, weighed and categorised into six main categories: plastic, metal, glass/ceramics (further - glass), natural products, rubber and miscellaneous (further - rest), and into 40 subcategories according to the standardized IBTS Protocol [@ICES2013]. For subcategories see Results section. Fishery-originated litter was analysed in two ways, with and without plastic synthetic rope included[^3], while the other fishery-originated subcategories were: fishing-related metal, rubber bobbins, plastic fishing net, plastic fishing line (entangled) and plastic fishing line (monofilament).
+
+**Data analysis**
+
+Data were downloaded from the ICES DATRAS website in July 2018 [@DATRAS2018]. All data analyses were performed with the statistical software package R version 3.3.3 (2017-03-06)[^1]. Only valid (fish catch exists, no information lost, no technical malfunctions appeared, oxygen value exists, duration of the trawl on the ground is around 30 minutes) hauls were considered. The dataset consists of a list of litter records (rows), with the describing variables (columns), such as year, country, litter category, weight, number of items etc. One litter record represents a single encounter with a particular litter category which can contain several pieces of litter (e.g. broken glass bottle). The number of items is then recorded as a single figure in the column "number". The total weight of the litter encounter is also recorded as a single figure in the column "weight". Hauls with no litter at all are represented as a single record. One particular outlier in the category natural products, with a value 90\% higher than the rest of the values in the same category, was excluded from calculations. Two weight values of over 2400 kg were treated as a mistake and divided by 1000. For two subcategories of Danish records for 2016 (37 observations) and for two subcategories of Polish records for 2017 (2 observations), where subcategories were filled, but both, "weight" and "number" columns remained empty, the mean weight across 332 items for the subcategory "other plastic", 132 items for the subcategory "other miscellaneous", 572 items for the subcategory "plastic sheet" and 50 items for the subcategory "plastic strapping band", respectively, were taken. 493 Danish, 21 Latvian and 161 Polish items which were recorded (or estimated like in the previous sentence) with only weight, but not the number, were considered to be a single item, because, first, 98.8\% of Danish and 100\% of Polish "number of items" were equal or lower than one and, secondly, personal communication with Danish and Polish data submitters confirmed their records to describe single pieces of litter. The personal communication with the Latvian submitter revealed that only one of 21 missing "number" records was supposed to be "2", the rest of them "1". In the two cases (containing 3 litter items), where no litter category was reported, but either “number” or "weight" were filled, the values of both number and weight were replaced with "0". For one Polish observation in 2017, where weight of a metal drum was not reported, it was estimated to be 19 kilograms based on the size of the litter item and on personal communication with the Polish submitter.
+
+[^1]: R code is provided in the online supplementary material 
+
+Number of items and weight in kilograms were described in (1) absolute values in order to show the bigger picture of litter in the Baltic Sea, (2) relative values (number/haul and kg/haul) and in (3) percentages for comparisons between years, litter categories and subcategories. In addition to numbers and weights, encounter probabilities were also evaluated. 95\% confidence intervals for the annual means of numbers and weights were computed using bootstrap with replacements. Pairwise comparisons were carried out of the first year (2012) to every other year using Student's t-Test for number of items and weight and using Exact Binomial Test for encounter probability with the probability of success of the first year. Since Poland, Estonia, Latvia and Lithuania joined the survey later, 2015 was used as the first year for the pairwise comparisons of their national catches (`r f.ref("natcat")`).
+
+# Results
+
+## Occurrence of marine litter
+
+```{r natcat}
+natcat <- fig_nums(name = "natcat", caption = "Annual national catches of marine litter. For abbreviations of country names see caption of Fig. 1. Error bars display bootstrapped (with replacements) 95% confidence intervals. Pairwise annual comparisons between the first year of the survey and all following years were conducted with Student's t-Test. Significance codes:  `****`: p <= 0.0001, `***`: p <= 0.001, `**`: p <= 0.01, `*`: p <= 0.05.")
+
+```
+
+```{r fig.cap=natcat}
+include_graphics('natcatch.jpg')
+# `r fig_nums('natcat')`
+```
+
+
+
+
+```{r yq}
+yq <- fig_nums(name = "yq", caption = "Temporal and seasonal occurrence of marine litter in hauls.")
+```
+
+```{r fig.cap=yq}
+include_graphics('yq.jpg')
+#`r fig_nums('yq')`
+```
+
+A total of 6828 items and 2412 kg of litter were encountered in the 2377 monitored hauls. While in 53\% of the monitored hauls at least one litter item was found (further - litter hauls), in 47\% of the hauls no litter was encountered (further - zero hauls), indicating that litter numbers might be overestimated if zero hauls are not accounted for. In some years and quarters (`r f.ref("yq")`) the percentages of zero hauls are even exceeding 50\%. The seasonal difference in the occurrence of litter hauls (`r f.ref("yq")`) is not significant (non-parametric Wilcoxon rank sum test with continuity correction p-value = 0.3776). The Danish vessel Hafvisken surveying the Kattegat was responsible for most of the zero hauls in the years 2012-2015; this area was not surveyed in 2016 and 2017, explaining the reduced percentage of zero hauls in these years.
+
+Annual national catches of marine litter per haul are presented in `r f.ref("natcat")`. Denmark is among the countries showing the lowest annual numbers of litter items per haul, but, nevertheless, collects the heaviest litter items compared to almost any other nation with the exception of Sweden. Sweden shows the highest catch rates of marine litter in terms of both, number of items and weight per haul. The spikes in the litter weight found by Danish researchers in 2014 and by Swedish researchers in 2013 (`r f.ref("natcat")`) are due to a high amounts of natural products. 
+
+```{r anncat}
+anncat = fig_nums(name = "anncat", caption = "Annual total (A, B) and per haul (C, D) catches of marine litter, in terms of number of items (A, C) and weight (B, D). Error bars display bootstrapped (with replacements) 95% confidence intervals. Dotted lines show the average over six years. Pairwise annual comparisons between the first year of the survey and all following years were conducted with Student's t-Test. Significance codes: `****`: p <= 0.0001, `***`: p <= 0.001, `**`: p <= 0.01, `*`: p <= 0.05.")
+
+```
+
+```{r fig.cap=anncat}
+include_graphics("anncat.jpg")
+#`r fig_nums("anncat")`
+```
+
+The average annual number of hauls, annual number of items, and annual weight were 396, 95\% CI [351.83, 441.29], 1138, 95\% CI [936.33, 1362.17] and 401.95 kg, 95\% CI [234.62, 596.67] respectively. The absolute numbers of litter caught increased from 952 items in 2012 to 1555 items caught in 2017 (`r f.ref("anncat")`A) reflecting the fact that more countries participated in the later years (`r f.ref("natcontr")`). The relative numbers of items per haul remained relatively stable over the period of six years with no significant changes (pairwisely compared to the first year by Student's t-Test) and an annual average of 2.9, 95\% [2.55, 3.23] (`r f.ref("anncat")`C). The evolution of litter weight caught over six years displays an increase in both, absolute weight and weight per haul, from 2012 to 2014 (while significant only in 2013 compared to 2012), an abrupt drop in 2015 and a further drop relative to the annual average of 1.1 (kg/haul), 95\% CI [0.70, 1.48] (`r f.ref("anncat")`B, D).
+
+
+## Litter categories
+
+```{r litcat}
+litcat = fig_nums(name = "litcat", caption = "Marine litter examples from the bottom of the Baltic Sea (A): metal (a), rubber (b), glass (c, h, m), natural products (wood) (d, g, l), plastic (fishery litter) (e, i), macroplastic (f, k), rest (textile) (f, g), natural products (cinder stones, or coke (fuel)) (j, g, n). Total catches of litter per category in number of items (B) and weight (C).")
+```
+
+```{r fig.cap=litcat}
+include_graphics("litcat.jpg")
+#`r fig_nums("litcat")`
+```
+
+Not plastic, but natural products is the most abundant litter category in the Baltic Sea in terms of numbers of items and in terms of weight (`r f.ref("litcat")`B, C). Plastic is the second most abundant litter type. Rest litter outnumbered metal, glass and rubber and is the third most abundant litter category in terms of number of items, but only the fourth in terms of weight because it is outweighed by the category metal. Rubber is the least abundant and the least heavy litter category in the Baltic Sea. Rest (8\%) and rubber (2\%) categories showed the same percentage in both number of items and weight. Despite the fact that rest, as a category, sounds rather undefined, two of three subcategories are clothing and shoes, indicating that almost hundred percent of marine litter can be classified using the IBTS Protocol. 
+
+```{r evalmeth}
+evalmeth = fig_nums(name = "evalmeth", caption = "Evaluation metrics of litter categories: encounter probability (0 means no encounter of this litter category whereas 1 means this litter category was encountered in every haul) (A), number of items (B), weight (C). Dotted lines show the average over six years. Error bars display 95% confidence intervals (bootstrapped (with replacements) for number of items and weight). Pairwise annual comparisons between the first year of the survey and all following years were conducted with the Exact Binomial Test for encounter probability and Student's t-Test for number of items and weight. Significance codes: `****`: p <= 0.0001, `***`: p <= 0.001, `**`: p <= 0.01, `*`: p <= 0.05.")
+```
+
+```{r fig.cap=evalmeth}
+include_graphics("evalmeth.jpg")
+#`r fig_nums("evalmeth")`
+```
+
+Natural products and plastic show the highest encounter probability, while rubber shows the lowest (`r f.ref("evalmeth")`). Natural products show a significant decline in encounters over time, particularly in the last four years compared to the first year. While the encounters of plastic and rubber did not seem to increase over the time period of four years from 2012 to 2015 (except of the significant increase in plastic in 2014), a significant rise occurred in 2016-2017. Metal shows the most significant increase if compared to the first year (except 2015). Glass and rest litter categories show less evidence of a significant increase in encounters, since the significant increase in 2016 compared to the first year vanishes in 2017. 
+
+Interestingly, the temporal trends, or their absence, in the abundance of litter collected during six years of survey in terms of numbers of items (`r f.ref("evalmeth")`B) and weight (`r f.ref("evalmeth")`C) do not always match the trends in the encounter probability (`r f.ref("evalmeth")`A), but are sometimes very consistent across different evaluation metrics. Thus, the evolution of the number of plastic items looks almost identical to the evolution of plastic encounter probability, showing the same significant increase during the last two years and a significant increase in weight in the last three years compared to the first year. Natural products, showing a significant drop in encounter probabilities in the last four years, shows a decline in the number of items only in the last two years, while only a significant decrease in weight is seen in 2016 compared to 2012. Rubber also displays similar increasing trends across evaluation metrics, showing a significant increase in the encounter probabilities and in terms of number of items in the last two years of the survey, while in terms of weight in 2015 and 2017. Metal, which did indicate a significant increase in encounter probability in four out of five years compared to 2012, increased significantly in terms of number of items only in 2016 and in terms of weight in 2016 and 2017.
+
+## Fishery-originated litter
+
+```{r fl}
+fl = fig_nums(name = "fl", caption = "Ranking of the subcategories of marine litter (A) in terms of number of items and weight (in brackets). Share of fishery-originated litter in marine litter in terms of number of items (B) and weight (C). The shares are evaluated with synthetic rope excluded and included in fishery-originated litter.")
+```
+
+```{r fig.cap=fl}
+include_graphics("flsub.jpg")
+# `r fig_nums("fl")`
+```
+
+`r f.ref("fl")`A displays the ranking of all litter subcategories collected from the Baltic seafloor. The ranking is based on the percentage of the particular subcategory in the total debris, where the percentages of litter in terms of items and in terms of weight were evaluated. Fishery litter subcategories hold following ranking positions: 7 (22) - plastic synthetic rope, 19 (39) - plastic fishing line (monofilament), 21 (18) - plastic fishing net, 24 (20) - plastic fishing line (entangled), 31 (15) - fishing-related metal and 34 (26) - rubber bobbins (fishing) in terms of number of items and weight (in brackets). The fishery litter adds up to 2.2-5.6\% in terms of items (without and with synthetic rope respectively) and to 2.7-3.2\% in terms of weight (kg) (without and with synthetic rope respectively) of all litter (`r f.ref("fl")`B,C).
+
+```{r flpl}
+flpl = fig_nums(name = "flpl", caption = "Sorted absolute values and percentages of the subcategories of marine plastic in terms of number of items and weight respectively (A, B) and share of fishery-originated litter in marine plastic in terms of number of items and weight respectively (C, D). The shares are evaluated with synthetic rope excluded and included in fishery-originated litter.")
+```
+
+```{r fig.cap=flpl}
+include_graphics("flall.jpg")
+# `r fig_nums("flpl")`
+```
+
+Plastic fishing net is the heaviest subcategory of fishery litter, while at the same time the second least abundant in terms of numbers of plastic items (`r f.ref("flpl")`A, B). Plastic synthetic rope, when being categorized as fishery-originated litter, makes the most abundant subcategory in terms of number of plastic items, and second least abundant in terms of plastic weight. The proportion of fishery-originated plastic within all plastic litter is 5.4 and 14.9\% (without and with synthetic rope respectively) for items and 8.2 and 11.6\% (without and with synthetic rope respectively) for weight (`r f.ref("flpl")`C,D). 
+
+```{r flyns}
+flyns = fig_nums(name = "flyns", caption = "Evolution of fishery litter over six years in terms of number of items (A) and weight (B). The shares are evaluated with synthetic rope excluded and included in fishery-originated litter.")
+```
+
+```{r fig.cap=flyns}
+include_graphics("fllast2.jpg")
+# `r fig_nums("flyns")`
+```
+
+The proportion of fishery-originated litter in terms of number of items caught increased over the years (`r f.ref("flyns")`A), but the proportion in terms of weight does not show a clear trend (`r f.ref("flyns")`B). The annual data within country (not shown) tentatively suggest that Poland, which joined the survey in 2015 and caught relatively high numbers of fishery-originated litter items (not shown), may be responsible for the increased proportions in terms of number although the numbers within year and within country are too low to analyze conclusively. Remarkable is the high number of Danish items of fishery-originated litter which do not seem to weigh much (not shown). Ranking of fishery-originated litter subcategories indicates that synthetic rope and plastic fishing line (monofilament) are among the most abundant, while fishery-originated metal and fishing nets are the heaviest. While plastic synthetic rope, if included, represents 61\% of fishery-originated litter in terms of number of items it only represents 16\% in terms of weight. Fishing nets are the third most abundant fishery-originated litter category in terms of number of items and the second heaviest in terms of weight. Fishery-originated metal is the heaviest subcategory, but almost the least abundant. 
+
+
+# Discussion
+
+## Lack of data and unstandardized litter categorisation
+
+Lack of data is one of the major hurdles in investigating litter on the seafloor, which is mainly due to high costs and technical difficulties of the sampling [@Pham2014; @Barnes2009; @Ramirez-Llodra2011]. Even opportunistic approaches, like fishery trawl surveys, can unfortunately not always be applied (e.g. on grounds not suitable for trawling), which again would require sophisticated and expensive tools (e.g. remotely operated vehicles (ROV) etc.). Thus, there are not only very few studies on litter on the Baltic seafloor, e.g. @Galgani2000, @Kammann2018, but these studies are also based on very few trawls, which might have led to inaccurate results. We hope that our study helps to motivates others to look at litter in their surveys, so that the lack-of-data hurdle will be overcome in the future. Besides, litter collection studies are barely comparable due to the different fishing gears or different litter categorisation. For instance, @Pham2014, collected 198 hauls from the deep (over 1 km) Mediterranean Sea with six litter categories, two of which being fishing gear and clinker, which are subcategories of plastic and natural products respectively in the IBTS Protocol in our study. 
+
+One of the closest studies we can relate to [@Kammann2018] used the same standardised IBTS Protocol for litter categories in a similar fishery trawl survey, but with a different vessel, in German waters of the Baltic Sea. The main difference with our study is the number of samples, which might have led to very discrepant results despite the similarity in approach. Our study builds on the work of our colleagues with a significantly larger sample size and a much wider area covered. Thus, @Kammann2018 reported 66\% of plastic items out of a total of only 50 pieces of litter found, while our study found 35\% of plastic in terms of number of items and 16\% in terms of weight among 6828 pieces. Moreover, not plastic, but natural products (mainly clinker) is the most abundant litter category in our study (42\% and 57\% in number of items and weight respectively). @Galgani2000 reported similar proportions of plastic (36\%) for the Baltic Sea found in only 5 trawls, although the direct comparison is rather difficult due to, again, different litter categorisation. @Pham2014 reported clinker to be encountered in 73\% of the 198 hauls in the Mediterranean Sea, while plastic was found in 98\% of the hauls.
+
+But why are the results of @Kammann2018[^4] so different from the current study, having the same methodology and partly the same region? The sample size might be an explanation. For instance, there is a difference in the number of hauls evaluated (79 vs. 2377 in this study), number of litter items found (50 vs. 6828), number of plastic items collected (33 vs. 2418) and number of litter items which were classified as fishery-originated litter (2 and 12 without and with synthetic rope respectively vs 150 and 380). Thus, their 33 items of plastic resulted in a relatively high (66\%) percentage of plastic in the total debris [@Kammann2018] and only 2-12 pieces of fishery-originated litter resulted in a relatively high (4-24\%) percentage of fishery-originated litter[^3]. Moreover, most of their fishery-originated litter was identified as synthetic rope, which is still questionable in terms of fisheries origin[^3]. @Kammann2018 extrapolated their low absolute numbers with resulting high percentages to the whole Baltic Sea, suggesting that there are 2.000.000 litter items on the seafloor of the Baltic Sea.  
+
+[^4]: both, @Kammann2018 and personal communication with Ulrike Kammann from Thuenen Institute of Fisheries Ecology 
+
+We investigated whether the discrepancy between our study and the study by @Kammann2018 can be explained by the difference in sample size only. We did this by the following resampling procedure. We took 10.000 random samples of 50 litter pieces out of our total catch (6828 pieces) and calculated the average percentages of the litter categories. This procedure resulted in 35.39\%, 95\% CI [35.26, 35.52] of plastic and 41.54\%, 95\% CI [41.40, 41.67] of natural products. In none out of 10.000 cases the percentage for plastic was as high as or exceeded 66\%, making the results of the current study significantly different from the results of @Kammann2018.
+
+The importance of standardised categorisation is reflected by the comparison of our result with the study of Polish colleagues, using data for only Polish territories [@Urban-Malinga2018]. In their study wood, fishing gear and textiles were treated as litter categories without using the subcategories, while in our study, following the standardized IBTS Protocol wood and textiles are the subcategories of natural products and miscellaneous respectively,  and fishery-originated items are in three different categories, namely plastic, rubber and metal. Moreover, in their study, the categories fishing gear and plastic were treated as mutually exclusive, whereas in our study, most of the fishery-originated items are actually in the category plastic. Thus, the amount of plastic in their study (66.5\%) naturally differs from ours (79.2\%) in terms of number of items if we only account for Polish data (besides, our Polish data, from DATRAS, also represent a different sample than theirs, but we cannot fully trace back the differences).
+
+## Litter catches
+
+Hauls where no litter was found have been rarely considered previously. Instead, studies often focused only on the litter found. This phenomenon might have originated from beach monitoring, because every time researchers go to the beach, they find at least one item of litter. Thus, since most marine-litter knowledge stems from beach monitoring, the phenomenon of leaving zero hauls out of focus might have become common. However, considering the absence of litter might prevent the overestimation of findings. 
+
+Thus, e.g. Denmark's litter catches would be heavily overestimated if zero hauls are not considered, because Denmark reported a high proportion of zero hauls registered in Kattegat. Due to recorded zero hauls Denmark is among the nations that caught the lowest number of litter items per haul. Nevertheless, Danish litter seems to weigh more than litter of almost any other nation except Sweden. The explanation here is that 74\% of Danish litter, in terms of weight (while only 23\% in terms of number of items), was natural products (clinker) found in the Central Baltic Sea, which are heavy. Sweden shows the highest catch rates of marine litter in terms of both, number of litter items and weight per haul. This might be due to either more polluted Swedish territories or it may result from a higher interest in litter and scrutiny of Swedish researchers compared to other nations, while the main goal of the survey is still fisheries. German litter catches are the most consistent and stable over the course of five years. Poland, Latvia and Lithuania caught relatively high numbers of litter items per haul, which may suggest that their territories are more polluted, compared to Denmark, are as polluted as German waters and are less polluted than Swedish waters. In contrast, their litter is not heavy, because they did not find many natural products. Lithuania found a lot of litter in 2017, but one year is not enough to draw any conclusions. Denmark and Poland caught a significantly higher number of items per haul in the last two years than before. While the Danish increase can be explained by the absent activity in the Kattegat area in the last two years, where Danish researchers usually recorded numerous zero hauls, the Polish increase might be due to the low number of hauls carried out only in quarter four in 2015, while in the years 2016-2017 they carried out high numbers of hauls in both quarters.
+
+The annual catch of litter with the scientific cruises alone is around 400 kilograms of weight; such quantities might constitute a hidden cost for the fishing industry. Extrapolated to the whole commercial fishing fleet this might result in a huge loss of revenue. Thus, the European Union fishing fleet is estimated to lose 61.7 million euros (m€) per year owing to reduced catch (28.64 m€), removing litter from fishing gear (11.74 m€),  broken gear and fouled propellers (16.79 m€) and rescue services (4.54 m€) [@Arcadis2014]. We found no significant decrease in litter weight per haul over the six years, suggesting that such costs are persisting.
+
+More hidden economic and environmental costs might arise if we fail to recognise potential problems by focusing on only one problem. Thus sharp focus of marine-litter research on plastic (and microplastic) in the last decade diminished the attention given to litter categories other than plastic. Moreover, the evaluation of amounts of plastic has been mainly based on number of items only, without considering weight, size or any other evaluation parameter. Such approaches might lead to inaccurate conclusions, because one small fragment of plastic bag is then equated to a huge derelict fishnet. While plastic is a severe global problem and its damage in the sea might be underestimated, simply because it has not been sufficiently studied yet, the widely accepted percentage of 70\% [@Galgani2000; @UNEPGRID2016] might be an overestimation. Thus, this study aims to increase the awareness of the non-plastic litter, since due to the ‘popularity’ of plastic, other litter categories were largely ignored or received far less attention.
+
+Our study shows that plastic is not the main component of marine litter in the Baltic Sea. We found the amount of plastic to be 16\% and 35\% (in terms of weight and number of items, respectively), which is in line with other benthic litter surveys [@Galgani2000]. Natural products (mainly clinker [@Pham2014] or cinder stone[^2]) was found to be the most abundant litter category, which was not recognized yet in the Baltic Sea. Clinker is the residue of burnt coal, which was commonly dumped from steam ships from the late 18^th^ century and well into the 20^th^ century [@Pham2014]. And according to the definition of marine litter given by the United Nations [@UNEP2009], clinker is a marine litter and therefore supposed to be accounted for. However, to date clinker was rarely reported. Notable exception is Pham et al. 2014, who reported that clinker accounted for 13\% of the total litter and that it was found in 73\% of the hauls in the Mediterranean Sea. Clinker could have been overlooked because it looks like a stone and due to the relatively heavy weight it is unlikely to be washed up on the beach, as compared to e.g. plastic. With beach monitoring being the most common litter monitoring framework, it is therefore not surprising that clinker was previously not reported more often. Moreover, many marine benthic-litter data are collected by volunteers, divers, or ROVs via videos and pictures, which all have limitations and this might have contributed to overlooking clinker. Thus, @Pham2014 reported that clinker was hardly identified by ROV footage, while it was highly abundant in the bottom trawls from the same area.  The advantage of the bottom trawls compared with other methods is their relative visual non-selectivity/blindness, because a trawl collects all objects encountered on its path that are not slipping through the mesh. On the other hand, one of the biggest weaknesses of trawls is that small litter particles are not retained by the mesh size of 20mm at the cod-end, but could be registered by ROV. Such size-related selectivity might have contributed to the relatively low proportion of plastic found by the BITS surveys. Therefore, percentages of litter categories must always be viewed with circumspection and consideration of the sampling method; as said before, percentages from different studies cannot necessarily be compared. Nevertheless, our study suggests that litter derived from particular industrial activities, i.e. former coal industry, might be underrepresented in many studies, while litter from others, i.e. plastic production, receives more attention. Whether clinker has any harmful effect on the environment goes beyond the focus of the current study and requires further explorations.  
+
+[^2]: Personal communication with Olof Lövgren from the Swedish University of Agricultural Sciences, November 2017. Personal communication with other national data collectors did not reveal any noticeable type of natural products other than clinker.
+
+```{r anncat_nnp}
+anncat_nnp = fig_nums(name = "anncat_nnp", caption = "Annual total (A, B) and per haul (C, D) catches of marine litter without natural products in number of items (A, C) and weight (B, D). Total annual catches of litter categories without natural products in terms of number of items and weight (E, F). Dotted lines show the average over six years. Error bars display bootstrapped (with replacements) 95% confidence intervals. Pairwise annual comparisons between the first year of the survey and all following years were conducted with Student's t-Test (C, D). Significance codes:  `****`: p <= 0.0001, `***`: p <= 0.001, `**`: p <= 0.01, `*`: p <= 0.05.")
+```
+
+```{r fig.cap=anncat_nnp}
+include_graphics("no_np.jpg")
+# `r fig_nums("anncat_nnp")`
+```
+
+In order to allow a better comparability of the current study to studies that did not consider clinker, we also analysed the Baltic litter without natural products. However, we emphasize, that natural products are marine litter by definition and therefore supposed to be accounted for. Removing the natural products raises the number of zero hauls from 47 to 49\%. The composition of litter categories would switch towards plastic becoming the most abundant category (61 and 38\% for number of items and weight respectively), which is more in line with most of the benthic marine litter studies, which reported up to 90\% of marine litter being plastic (mostly in the Mediterranean Sea) [@Urban-Malinga2018; @Kammann2018; @Ramirez-Llodra2013; @Galgani2000; @Galil1995; @Galgani1995]. The evolution of absolute numbers of litter items and numbers of items per haul (`r f.ref("anncat_nnp")`A, C) resembles the evolution of plastic items (`r f.ref("evalmeth")`C), with the two last years having significantly increased numbers of items. The absolute weights and weights per haul without natural products are significantly lower in 2012 compared to any other year, indicating an increase in weight of litter compared to the beginning of the survey (`r f.ref("anncat_nnp")`B, D). As expected, without natural products the share of the fishery-originated litter increases to 3.8 and 9.5% (without and with synthetic rope respectively) in terms of number of items (from 2.2 and 5.6% with natural products) and to 6.3 and 7.6% in terms of weight (from 2.7 and 3.2%). The evolution of fishery litter does not show an increase in terms of number of items, and even shows a negative trend in terms of weight (not shown). 
+
+## Evaluation metrics
+
+The encounter probabilities, numbers of litter items and weights do not always tell the same story. Using only one of the evaluation metrics can possibly bias the picture. For instance, the amount of glass or plastic may be overestimated if evaluated as number of items while not accounting for weight [@Pham2014; @Ramirez-Llodra2013] because these materials are often found as numerous small pieces that larger objects were broken into. Similarly, one single lost shipping container weighs much more than thousands of nails do. Also the number of items in the subcategory fishing nets can be easily misinterpreted if weight is not considered. For instance, our 42 items of nets could be mistakenly interpreted as 42 whole fishing nets, resulting in estimates of tons of derelict fishing gear. In contrast, our 42 items of fishing nets weighed on average only 0.4 kg per item – which means that they are just fragments of nets and not the whole nets. Therefore using both, number and weight prevents us from such overestimation. While comparing weights of different categories (heavy metal or clinker vs. light plastic) is not very useful [@Pham2014], comparing temporal changes in the prevalence of a particular category using numbers, weights and encounter probabilities might prove to be useful for getting the complete picture. 
+
+Thus, we found a significant increase in plastic in terms of number of items per haul (2016-2017) as well as weight per haul (2015-2017) and encounter probability (2016-2017) compared to the beginning of the time series in 2012. Similarly, number of items and encounter probability of rubber significantly increase in the last two years of the time series, while weight significantly increases in 2015 and 2017. All three evaluation metrics agree that there is no significant trend in glass. On the other hand, an increase in the number and encounter probability of rest items (2016) is not reflected in any significant trend in terms of weight. 
+
+Thus, our results may suggest that plastic, metal and rubber litter accumulate faster than we clean the sea. On the other hand, a significant decrease in the number (2016-2017), weight (2016) and encounter probability (2014-2017) of natural products – of which the major subcategory, clinker, does not accumulate anymore – suggests that cleaning the sea, e.g. via fishing for litter [@ffl2004], might actually work.
+
+
+## Fishery-originated litter
+
+A wide range of percentages of fishery-originated litter is reported around the world, starting at 1.9\% in Cyprus and 2.4\% in Japan [@Jones1995] and reaching up to 51\% in the Celtic Sea [@Moriarty2016] or even 56\% on Gorringe Bank [@Vieira2014]. This is most likely due to differences in parameters such as location, collection method, coastal population, marine traffic, fishery effort etc. @Urban-Malinga2018 reported 6.3\% of litter in terms of number of items being fishery-originated in the Polish territory (though, such low number might be due to the world's largest cleaning efforts for removal of the derelict fishing gear undertaken in the Polish marine waters since 2014 - [MARELITT](http://www.marelitt.eu/) ). Similarly, Kammann[^3] estimated 6 and 36.3\% (without and with synthetic rope) of plastic litter being of fisheries origin in the Baltic Sea, with 0\% (none) fishing nets. We found that fishing debris made up 5.4 and 14.9\% (without and with synthetic rope) of the plastic debris in terms of the number of items and 8.2 and 11.6\% (without and with synthetic rope) in terms of weight. With regard to the total waste found, Kammann[^3] estimated the share of fishery-originated debris to be 4 and 24\% (without and with synthetic rope) with 0% (none) fishery-originated metal and rubber. We found fishery debris to be 2.2 and 5.6\% (without and with synthetic rope) of the total debris based on numbers and 2.7 and 3.2\% (without and with synthetic rope) based on weight. Thus, our estimates without synthetic rope are only slightly lower than the previous estimates[^3], while our estimates with synthetic rope are substantially lower (but still, synthetic rope is our most abundant fishery-originated litter category).
+
+[^3]: Personal communication with Ulrike Kammann from Thuenen Institute of Fisheries Ecology
+
+The IBTS Protocol offers four subcategories of plastic which may originate from fishing: plastic synthetic rope, plastic fishing line (monofilament), plastic fishing line (entangled) and plastic fishing net. There are also two subcategories of fishery-originated litter other than plastic: fishing-related metal and fishing-related rubber. The biggest possibly fishery-originated litter subcategory, synthetic rope, is ranked number 7 and is just 3.4\% in terms of number of items of the total debris, while in terms of weight it is ranked number 22 and is only 0.5\% of the total litter weight. Fishing nets, placed on the 21^st^ position among all litter subcategories, is the third most abundant fisheries debris in terms of number of items with only 0.6\% of the total debris, while it is the second heaviest in terms of weight with 0.7\% and 18^th^ position in the overall ranking. Thus, “ghost nets” in particular and fishing debris in general do not seem to have a big impact in the Baltic Sea compared to other regions or previously reported figures, which is one of the most important results of this study.
+
+Nevertheless, there may be reason to be concerned. We found a tentatively increasing trend in the proportion in terms of number of items but not in terms of weight of fishery-originated litter. One of the future questions to answer would be the amount of fishery litter originating from the recreational fishery and the share of different litter categories discarded by recreational fishery.
+
+To address the marine-litter problem, we support the fishing-for-litter initiative, where local fishermen are encouraged to bring the litter they caught to the shore rather than throwing it over board [@ffl2004]. Fishing for litter is not only much more cost effective, compared to cleaning cruises, but it would also improve the image of the fisheries industry for the public and reduce litter re-catches.
+
+Extrapolating our results from the BITS survey by fishing effort (2377 hauls * 30 min/haul = ca. 50 days) to the very rough estimate of the effort of the whole commercial fishing fleet in the Baltic Sea in the same 6 years (ca. 192230 days [@ICES2018]), results in ca. 26 million items and ca. 9000 tons which could have been removed if every commercial ship would have fished for litter for the last 6 years. And since it has been estimated that there are around 2 million litter particles on the bottom of the Baltic Sea [@Kammann2018], even if 10\% of commercial vessels would fish for litter, this might eventually clean the Baltic Sea. Thus, a relatively small (2.2-5.6\%) negative impact of fisheries on the Baltic Sea in terms of litter can be transformed into positive impact from fishing for litter.
+
+
+## Limitations of the study
+
+The main problem with trawl-fisheries as a method to collect litter is that it was designed for and is focused on catching fish, not litter. Therefore, litter is a side-product of trawling and might therefore be underestimated (taken less seriously). On the other hand, if it is the most common [@Spengler2008] and the only economically viable method to gather data on benthic marine litter, we either have an uncertainty or we have no data. Trawl-fisheries most likely underestimate litter numbers, because small particles are not caught by the net, which has a 20mm mesh size at the cod-end. Besides, large areas are closed for fishing activities in the Baltic Sea because of dumped munitions, electrical cables, gas pipelines, dense ship traffic, military trainings etc., or simply avoided by fishers because of the stony ground. Such areas inaccessible for trawling might offer more insight and can be explored with other methods (e.g. ROV, divers). The comparability of the results from this study to other studies is rather difficult, because there is no single and widely accepted litter categorisation protocol. It was not possible to evaluate the size of the litter items because the IBTS Protocol offers only two size indicators, length and surface area, for litter description. Size in three dimensions is additionally needed for a better description of objects. In the case of hollow objects, such as bottles, the weight might likely include water, which makes the weight of glass and plastic less reliable compared to that of metal or natural products. Since litter particles are often colonised by fauna, weight might also be slightly overestimated [@Urban-Malinga2018].
+
+In order to complete the big picture and shed more light on the black box of benthic marine litter, information gathered by all litter collection methods, particularly beach monitoring, collection in shallow waters, of surface litter, pelagic litter, benthic litter, marine sediment litter, including small litter particles collected from the seafloor, pictures made by divers or ROV and litter consumed by marine organisms should ideally be combined.
+
+# Acknowledgements
+
+We would like to thank everyone, who contributed to this study, especially national cruise leaders, who collected the litter and national data submitters, who prepared and uploaded the data to the DATRAS Website [@DATRAS2018].
+
+# Funding 
+
+SK was partly funded by the European Maritime and Fisheries Fund (EMFF) of the European Union (EU) under the Data Collection Framework (DCF, Regulation 2017/1004 of the European Parliament and of the Council).
+
+# Author contributions
+
+Analyzed the data: YZ with contributions from SK. Drafted the paper: YZ with contributions from SK. All authors have approved the final version.
+
+# References 
+
+
