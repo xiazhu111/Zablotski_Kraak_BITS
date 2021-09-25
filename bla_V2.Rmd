@@ -151,9 +151,9 @@ lt2$Plastic_Weight <-
 lt2
 #then, use dplyr: https://stackoverflow.com/questions/32493398/sum-column-in-data-frame-based-on-another-column-in-r
 library(dplyr) #IT WORKED!!! plastic kg/haul weights saved for each unique lat, long combination
-lt2_sum <- lt2 %>% group_by(HaulLat,HaulLong,Year,Distance,) %>%
+lt2_sum <- lt2 %>% group_by(HaulLat,HaulLong,Year,Distance,BottomDepth) %>%
     summarize(Plastic_Weight = sum(Plastic_Weight)) #see if this works - wonder if need to specify something for every column I want to be kept in the new dataframe
-write.csv(lt2_sum, file = "C:/Users/alice/OneDrive - University of Toronto/Alice/Temp/lt2_sum.csv")
+write.csv(lt2_sum, file = "C:/Users/alice/OneDrive - University of Toronto/Alice/Temp/lt2_sum2.csv") #includes BottomDepth now as well
 
 
 # Create new column, which describes Litter sourse without Synthetic rope
